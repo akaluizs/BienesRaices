@@ -1,6 +1,5 @@
 import './globals.css'
-import Navbar from '@/components/Navbar'
-import Footer from '@/components/Footer'
+import ClientLayout from './ClientLayout'
 
 export const metadata = {
   title: 'Bienes Raíces - Encuentra tu Hogar',
@@ -11,13 +10,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="es">
       <body className="bg-white">
-        <Navbar />
-        
-        <main>
-          {children}
-        </main>
-
-        <Footer />
+        <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   )
