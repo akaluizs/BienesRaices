@@ -3,7 +3,7 @@ import './globals.css'
 import ClientLayout from './ClientLayout'
 
 export const metadata = {
-  title: 'Bienes Raíces - Encuentra tu Hogar',
+  title: 'Multi inmuebles  - Encuentra tu Hogar',
   description: 'Plataforma de bienes raíces con las mejores propiedades',
 }
 
@@ -12,10 +12,12 @@ export default function RootLayout({ children }) {
     <html lang="es">
       <body className="bg-white">
         <ClientLayout>{children}</ClientLayout>
-        <Toaster position="top-right"
+        <Toaster 
+          position="top-right"
           duration={3000}
           closeButton
-          richColors />
+          richColors 
+        />
       </body>
     </html>
   )

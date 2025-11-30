@@ -49,7 +49,7 @@ export default function Home() {
   };
 
   return (
-    <main>
+    <main style={{ viewTransitionName: 'main-content' }} className="space-y-8">
       <Hero />
 
       {/* PROPIEDADES DESTACADAS */}

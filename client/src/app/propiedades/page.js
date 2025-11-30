@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import PropertyCard from '@/components/PropertyCard';
 import { Loader2, Home, Search } from 'lucide-react';
@@ -10,6 +11,7 @@ export default function PropiedadesPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTipo, setFilterTipo] = useState('all');
+  const router = useRouter();
 
   useEffect(() => {
     loadProperties();
@@ -55,6 +57,16 @@ export default function PropiedadesPage() {
     return matchesSearch && matchesTipo;
   });
 
+  const handlePropertyClick = (id) => {
+    if (document.startViewTransition) {
+      document.startViewTransition(() => {
+        router.push(`/propiedades/${id}`);
+      });
+    } else {
+      router.push(`/propiedades/${id}`);
+    }
+  };
+
   if (loading) {
     return (
       <main className="body-theme min-h-screen py-16">
@@ -68,7 +80,7 @@ export default function PropiedadesPage() {
   }
 
   return (
-    <main className="body-theme min-h-screen py-16">
+    <main className="body-theme min-h-screen py-16" style={{ viewTransitionName: 'main-content' }}>
       <div className="container mx-auto px-4">
         <h1 className="text-4xl md:text-5xl font-bold text-xela-navy mb-4 text-center">
           Nuestras Propiedades
@@ -140,7 +152,14 @@ export default function PropiedadesPage() {
         {filteredProperties.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredProperties.map((property) => (
-              <PropertyCard key={property.id} property={property} />
+              <div
+                key={property.id}
+                onClick={() => handlePropertyClick(property.id)}
+                style={{ viewTransitionName: `property-${property.id}` }}
+                className="cursor-pointer"
+              >
+                <PropertyCard property={property} />
+              </div>
             ))}
           </div>
         ) : (

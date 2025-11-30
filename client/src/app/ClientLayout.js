@@ -11,7 +11,9 @@ export default function ClientLayout({ children }) {
   return (
     <>
       {!isAdminRoute && <Navbar />}
-      <main>{children}</main>
+      <main className="min-h-screen">
+        {children}
+      </main>
       {!isAdminRoute && <Footer />}
     </>
   )
