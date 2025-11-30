@@ -1,3 +1,4 @@
+import { Toaster } from "@/components/ui/sonner"
 import './globals.css'
 import ClientLayout from './ClientLayout'
 
@@ -11,6 +12,10 @@ export default function RootLayout({ children }) {
     <html lang="es">
       <body className="bg-white">
         <ClientLayout>{children}</ClientLayout>
+        <Toaster position="top-right"
+          duration={3000}
+          closeButton
+          richColors />
       </body>
     </html>
   )

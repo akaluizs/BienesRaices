@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -21,9 +21,11 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-export default function NuevaPropiedadPage() {
+export default function EditarPropiedadPage({ params }) {
+  const { id } = use(params);
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(true);
   const [imagePreviews, setImagePreviews] = useState([]);
   const [formData, setFormData] = useState({
     titulo: '',
@@ -36,6 +38,54 @@ export default function NuevaPropiedadPage() {
     metros2: '',
     imagenes: []
   });
+
+  useEffect(() => {
+    loadPropiedad();
+  }, [id]);
+
+  const loadPropiedad = async () => {
+    const loadingToast = toast.loading('Cargando propiedad...');
+    
+    try {
+      const { data, error } = await supabase
+        .from('propiedades')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setFormData({
+          titulo: data.titulo || '',
+          tipo: data.tipo || '',
+          precio: data.precio || '',
+          ubicacion: data.ubicacion || '',
+          descripcion: data.descripcion || '',
+          habitaciones: data.habitaciones || '',
+          banos: data.banos || '',
+          metros2: data.metros2 || '',
+          imagenes: data.imagenes || []
+        });
+        setImagePreviews(data.imagenes || []);
+        
+        toast.success('Propiedad cargada correctamente', {
+          id: loadingToast,
+          duration: 2000,
+        });
+      }
+    } catch (error) {
+      console.error('Error cargando propiedad:', error);
+      toast.error('Error al cargar la propiedad', {
+        id: loadingToast,
+        description: error.message,
+        duration: 4000,
+      });
+      router.push('/admin/propiedades');
+    } finally {
+      setLoadingData(false);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -136,13 +186,13 @@ export default function NuevaPropiedadPage() {
       return;
     }
 
-    const loadingToast = toast.loading('Creando propiedad...');
+    const loadingToast = toast.loading('Actualizando propiedad...');
     setLoading(true);
 
     try {
       const { data, error } = await supabase
         .from('propiedades')
-        .insert([{
+        .update({
           titulo: formData.titulo,
           tipo: formData.tipo,
           precio: parseFloat(formData.precio),
@@ -152,12 +202,13 @@ export default function NuevaPropiedadPage() {
           banos: parseInt(formData.banos) || null,
           metros2: parseInt(formData.metros2) || null,
           imagenes: formData.imagenes
-        }])
+        })
+        .eq('id', id)
         .select();
 
       if (error) throw error;
 
-      toast.success('¡Propiedad creada exitosamente!', {
+      toast.success('¡Propiedad actualizada exitosamente!', {
         id: loadingToast,
         description: 'Redirigiendo al listado...',
         duration: 3000,
@@ -167,8 +218,8 @@ export default function NuevaPropiedadPage() {
         router.push('/admin/propiedades');
       }, 1500);
     } catch (error) {
-      console.error('Error creando propiedad:', error);
-      toast.error('Error al crear la propiedad', {
+      console.error('Error actualizando propiedad:', error);
+      toast.error('Error al actualizar la propiedad', {
         id: loadingToast,
         description: error.message,
         duration: 4000,
@@ -177,6 +228,14 @@ export default function NuevaPropiedadPage() {
       setLoading(false);
     }
   };
+
+  if (loadingData) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-cerro-verde" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -188,8 +247,8 @@ export default function NuevaPropiedadPage() {
           </button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold text-xela-navy">Nueva Propiedad</h1>
-          <p className="text-granito mt-1">Completa los campos para agregar una propiedad</p>
+          <h1 className="text-3xl font-bold text-xela-navy">Editar Propiedad</h1>
+          <p className="text-granito mt-1">Modifica los campos que desees actualizar</p>
         </div>
       </div>
 
@@ -453,12 +512,12 @@ export default function NuevaPropiedadPage() {
             {loading ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                <span>Creando...</span>
+                <span>Actualizando...</span>
               </>
             ) : (
               <>
                 <Home className="w-5 h-5" />
-                <span>Crear Propiedad</span>
+                <span>Actualizar Propiedad</span>
               </>
             )}
           </button>

@@ -1,124 +1,88 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useState, useEffect } from 'react';
 import Link from 'next/link';
-import { MapPin, Ruler, Users, Droplet, Car, Phone, Mail, MessageSquare, Send, MessageCircle, ArrowRight } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { MapPin, Ruler, Users, Droplet, Car, Phone, Mail, MessageSquare, Send, MessageCircle, ArrowRight, Loader2, Home } from 'lucide-react';
 
 export default function PropertyDetailPage({ params }) {
   const { id } = use(params);
+  const [property, setProperty] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  // Base de datos de propiedades
-  const properties = {
-    1: {
-      id: 1,
-      title: 'Casa Moderna',
-      price: 350000,
-      location: 'Zona 3, Quetzaltenango',
-      description: 'Casa moderna de 3 niveles con parqueo, patio y acabados de lujo',
-      images: [
-        'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1570129477492-45a003537e1f?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800&h=600&fit=crop',
-      ],
-      area: 120,
-      bedrooms: 3,
-      bathrooms: 2,
-      parking: 1,
-      type: 'Casa',
-      yearBuilt: 2020,
-      condition: 'Excelente',
-      features: [
-        'Sala de estar moderna',
-        'Cocina integral equipada',
-        'Jardín trasero',
-        'Sistema de seguridad',
-        'Acabados de lujo',
-        'Piscina',
-      ],
-      description_long: 'Esta hermosa casa moderna ubicada en la Zona 3 de Quetzaltenango es el hogar perfecto para familias que buscan confort y lujo. Cuenta con 3 habitaciones amplias, 2 baños completos y una sala de estar con vistas al jardín. La cocina integral está completamente equipada con electrodomésticos de alta gama. El patio trasero es ideal para disfrutar con la familia y tiene espacio para una piscina. La propiedad cuenta con sistema de seguridad moderno y acabados de lujo en todas sus áreas.',
-      agent: {
-        name: 'Carlos Mendez',
-        phone: '+502 4000 0000',
-        email: 'carlos@bienesraices.com',
-        image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop',
-      },
-    },
-    2: {
-      id: 2,
-      title: 'Apartamento Céntrico',
-      price: 250000,
-      location: 'Centro, Quetzaltenango',
-      description: 'Apartamento de 2 habitaciones en ubicación privilegiada y segura',
-      images: [
-        'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&h=600&fit=crop',
-      ],
-      area: 85,
-      bedrooms: 2,
-      bathrooms: 1,
-      parking: 1,
-      type: 'Apartamento',
-      yearBuilt: 2018,
-      condition: 'Muy bueno',
-      features: [
-        'Ubicación céntrica',
-        'Seguridad 24/7',
-        'Balcón con vista',
-        'Lavandería',
-        'Acceso a gimnasio',
-        'Zona de esparcimiento',
-      ],
-      description_long: 'Apartamento moderno ubicado en el corazón del centro de Quetzaltenango. Perfecto para parejas o pequeñas familias. Cuenta con 2 habitaciones cómodas, 1 baño completo y sala-comedor integrada. El edificio ofrece seguridad 24/7, acceso a gimnasio y áreas comunes para esparcimiento. El balcón tiene una hermosa vista de la ciudad.',
-      agent: {
-        name: 'María López',
-        phone: '+502 4000 0001',
-        email: 'maria@bienesraices.com',
-        image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop',
-      },
-    },
-    3: {
-      id: 3,
-      title: 'Terreno Amplio',
-      price: 150000,
-      location: 'Zona 5, Quetzaltenango',
-      description: 'Terreno de 500 m² ideal para construcción de vivienda o comercio',
-      images: [
-        'https://images.unsplash.com/photo-1500382017468-7049ffd0c72c?w=800&h=600&fit=crop',
-        'https://images.unsplash.com/photo-1500595046891-e20b5add1e80?w=800&h=600&fit=crop',
-      ],
-      area: 500,
-      bedrooms: null,
-      bathrooms: null,
-      parking: null,
-      type: 'Terreno',
-      yearBuilt: null,
-      condition: 'Disponible',
-      features: [
-        'Zona de desarrollo',
-        'Acceso a servicios básicos',
-        'Escrituras claras',
-        'Ideal para residencial',
-        'Ideal para comercial',
-        'Topografía plana',
-      ],
-      description_long: 'Excelente oportunidad de inversión. Terreno de 500 m² ubicado en la Zona 5 de Quetzaltenango, área de desarrollo. El terreno tiene acceso a todos los servicios básicos (agua, luz, internet). Las escrituras están completamente claras y disponibles. Es ideal tanto para construcción residencial como comercial. La topografía es plana, lo que facilita la construcción.',
-      agent: {
-        name: 'Juan García',
-        phone: '+502 4000 0002',
-        email: 'juan@bienesraices.com',
-        image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&h=200&fit=crop',
-      },
-    },
+  useEffect(() => {
+    loadProperty();
+  }, [id]);
+
+  const loadProperty = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('propiedades')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        // Transformar datos al formato del componente
+        setProperty({
+          id: data.id,
+          title: data.titulo,
+          price: data.precio,
+          location: data.ubicacion,
+          description: data.descripcion,
+          images: data.imagenes || [],
+          area: data.metros2,
+          bedrooms: data.habitaciones,
+          bathrooms: data.banos,
+          parking: null, // Si no tienes este campo
+          type: data.tipo,
+          yearBuilt: null, // Si no tienes este campo
+          condition: 'Disponible',
+          features: [], // Si no tienes este campo
+          description_long: data.descripcion,
+          agent: {
+            name: 'Agente de Ventas',
+            phone: '+502 4000 0000',
+            email: 'info@bienesraices.com',
+            image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop',
+          },
+        });
+      }
+    } catch (error) {
+      console.error('Error cargando propiedad:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const property = properties[id];
+  const nextImage = () => {
+    if (property && property.images.length > 0) {
+      setCurrentImageIndex((prev) => (prev + 1) % property.images.length);
+    }
+  };
+
+  const prevImage = () => {
+    if (property && property.images.length > 0) {
+      setCurrentImageIndex((prev) => (prev - 1 + property.images.length) % property.images.length);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="body-theme min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-cerro-verde" />
+      </div>
+    );
+  }
 
   if (!property) {
     return (
       <div className="body-theme min-h-screen flex items-center justify-center">
         <div className="text-center">
+          <Home className="w-16 h-16 text-slate-300 mx-auto mb-4" />
           <h1 className="text-4xl font-bold text-xela-navy mb-4">Propiedad no encontrada</h1>
           <Link href="/propiedades" className="text-cerro-verde hover:text-xela-navy">
             ← Volver a propiedades
@@ -127,14 +91,6 @@ export default function PropertyDetailPage({ params }) {
       </div>
     );
   }
-
-  const nextImage = () => {
-    setCurrentImageIndex((prev) => (prev + 1) % property.images.length);
-  };
-
-  const prevImage = () => {
-    setCurrentImageIndex((prev) => (prev - 1 + property.images.length) % property.images.length);
-  };
 
   return (
     <main className="body-theme property-page">
@@ -145,14 +101,20 @@ export default function PropertyDetailPage({ params }) {
             {/* IMAGEN PRINCIPAL */}
             <div className="lg:col-span-2">
               <div className="relative h-96 md:h-[500px] rounded-2xl overflow-hidden bg-gray-200 group">
-                <img
-                  src={property.images[currentImageIndex]}
-                  alt={property.title}
-                  className="w-full h-full object-cover"
-                />
+                {property.images && property.images.length > 0 ? (
+                  <img
+                    src={property.images[currentImageIndex]}
+                    alt={property.title}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Home className="w-20 h-20 text-slate-400" />
+                  </div>
+                )}
 
                 {/* CONTROLES DE GALERÍA */}
-                {property.images.length > 1 && (
+                {property.images && property.images.length > 1 && (
                   <>
                     <button
                       onClick={prevImage}
@@ -176,33 +138,37 @@ export default function PropertyDetailPage({ params }) {
               </div>
 
               {/* MINIATURAS */}
-              <div className="flex gap-4 mt-6 overflow-x-auto pb-2">
-                {property.images.map((image, index) => (
-                  <img
-                    key={index}
-                    src={image}
-                    alt={`Miniatura ${index + 1}`}
-                    onClick={() => setCurrentImageIndex(index)}
-                    className={`h-20 w-20 md:h-24 md:w-24 rounded-lg cursor-pointer object-cover transition ${
-                      currentImageIndex === index ? 'ring-2 ring-cerro-verde' : 'opacity-70 hover:opacity-100'
-                    }`}
-                  />
-                ))}
-              </div>
+              {property.images && property.images.length > 1 && (
+                <div className="flex gap-4 mt-6 overflow-x-auto pb-2">
+                  {property.images.map((image, index) => (
+                    <img
+                      key={index}
+                      src={image}
+                      alt={`Miniatura ${index + 1}`}
+                      onClick={() => setCurrentImageIndex(index)}
+                      className={`h-20 w-20 md:h-24 md:w-24 rounded-lg cursor-pointer object-cover transition ${
+                        currentImageIndex === index ? 'ring-2 ring-cerro-verde' : 'opacity-70 hover:opacity-100'
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* INFORMACIÓN DERECHA */}
             <div className="space-y-6">
               {/* BADGE TIPO */}
-              <div className="inline-block bg-cerro-verde text-white px-4 py-2 rounded-lg font-semibold text-sm">
-                {property.type}
-              </div>
+              {property.type && (
+                <div className="inline-block bg-cerro-verde text-white px-4 py-2 rounded-lg font-semibold text-sm">
+                  {property.type}
+                </div>
+              )}
 
               {/* TÍTULO Y PRECIO */}
               <div>
                 <h1 className="h1 mb-2">{property.title}</h1>
                 <p className="price mb-4">
-                  Q {property.price.toLocaleString()}
+                  Q {property.price?.toLocaleString()}
                 </p>
               </div>
 
@@ -222,13 +188,13 @@ export default function PropertyDetailPage({ params }) {
                     <span className="text-granito">{property.area} m²</span>
                   </div>
                 )}
-                {property.bedrooms && (
+                {property.type !== 'Terreno' && property.bedrooms && (
                   <div className="flex items-center gap-3">
                     <Users className="w-5 h-5 text-xela-navy" />
                     <span className="text-granito">{property.bedrooms} Habitaciones</span>
                   </div>
                 )}
-                {property.bathrooms && (
+                {property.type !== 'Terreno' && property.bathrooms && (
                   <div className="flex items-center gap-3">
                     <Droplet className="w-5 h-5 text-xela-navy" />
                     <span className="text-granito">{property.bathrooms} Baños</span>
@@ -245,14 +211,14 @@ export default function PropertyDetailPage({ params }) {
               {/* BOTONES */}
               <div className="space-y-3 pt-4">
                 {/* BOTÓN CONTACTO */}
-               <a
-                href={`/contacto?property=${id}`}
-                className="w-full group bg-arena hover:bg-orange-500 text-xela-navy font-bold py-4 px-6 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-md hover:shadow-lg hover:-translate-y-1"
-              >
-              <Send className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-              <span>Solicitar Información</span>
-              <ArrowRight className="w-5 h-5 opacity-0 group-hover:opacity-100 group-hover:translate-x-2 transition-all" />
-              </a>
+                <a
+                  href={`/contacto?property=${id}`}
+                  className="w-full group bg-arena hover:bg-orange-500 text-xela-navy font-bold py-4 px-6 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-md hover:shadow-lg hover:-translate-y-1"
+                >
+                  <Send className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                  <span>Solicitar Información</span>
+                  <ArrowRight className="w-5 h-5 opacity-0 group-hover:opacity-100 group-hover:translate-x-2 transition-all" />
+                </a>
 
                 {/* BOTÓN WHATSAPP */}
                 <a
@@ -291,19 +257,23 @@ export default function PropertyDetailPage({ params }) {
             <div className="lg:col-span-2">
               <h2 className="h2 mb-6">Descripción</h2>
               <p className="body-lg mb-8">
-                {property.description_long}
+                {property.description_long || property.description || 'Sin descripción disponible.'}
               </p>
 
               {/* CARACTERÍSTICAS */}
-              <h3 className="h3 mb-6">Características</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {property.features.map((feature, index) => (
-                  <div key={index} className="flex items-center gap-3 bg-niebla p-4 rounded-lg hover:bg-arena/20 transition-colors">
-                    <div className="w-2 h-2 bg-cerro-verde rounded-full" />
-                    <span className="body-sm">{feature}</span>
+              {property.features && property.features.length > 0 && (
+                <>
+                  <h3 className="h3 mb-6">Características</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {property.features.map((feature, index) => (
+                      <div key={index} className="flex items-center gap-3 bg-niebla p-4 rounded-lg hover:bg-arena/20 transition-colors">
+                        <div className="w-2 h-2 bg-cerro-verde rounded-full" />
+                        <span className="body-sm">{feature}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </>
+              )}
             </div>
 
             {/* INFORMACIÓN ADICIONAL */}

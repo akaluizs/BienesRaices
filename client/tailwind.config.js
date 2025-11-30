@@ -15,5 +15,5 @@ module.exports = {
       },
     },
   },
-  plugins: [], // ❌ NO uses @tailwindcss/forms, ya no funciona en v4
+  plugins: [], 
 }

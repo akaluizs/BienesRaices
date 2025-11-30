@@ -14,7 +14,8 @@ import {
   Loader2,
   Bed,
   Bath,
-  Maximize
+  Maximize,
+  Building2
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -74,6 +75,20 @@ export default function PropiedadesPage() {
                          prop.ubicacion?.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
   });
+
+  // Función para obtener el color del badge según el tipo
+  const getTipoBadgeColor = (tipo) => {
+    switch(tipo) {
+      case 'Casa':
+        return 'bg-blue-500';
+      case 'Apartamento':
+        return 'bg-purple-500';
+      case 'Terreno':
+        return 'bg-green-500';
+      default:
+        return 'bg-gray-500';
+    }
+  };
 
   if (loading) {
     return (
@@ -145,13 +160,25 @@ export default function PropiedadesPage() {
                   <Home className="w-16 h-16 text-slate-400" />
                 </div>
               )}
+              
+              {/* TIPO BADGE */}
+              {propiedad.tipo && (
+                <div className={cn(
+                  'absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-bold text-white',
+                  getTipoBadgeColor(propiedad.tipo)
+                )}>
+                  {propiedad.tipo}
+                </div>
+              )}
             </div>
 
             {/* CONTENT */}
             <div className="p-5">
-              <h3 className="text-lg font-bold text-xela-navy mb-2 line-clamp-1">
-                {propiedad.titulo}
-              </h3>
+              <div className="flex items-center gap-2 mb-2">
+                <h3 className="text-lg font-bold text-xela-navy line-clamp-1 flex-1">
+                  {propiedad.titulo}
+                </h3>
+              </div>
 
               <div className="space-y-2 mb-4">
                 <div className="flex items-center gap-2 text-sm text-granito">
@@ -167,14 +194,18 @@ export default function PropiedadesPage() {
                 
                 {/* SPECS */}
                 <div className="flex items-center gap-4 text-xs text-granito pt-2">
-                  <div className="flex items-center gap-1">
-                    <Bed className="w-4 h-4" />
-                    <span>{propiedad.habitaciones || 0}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Bath className="w-4 h-4" />
-                    <span>{propiedad.banos || 0}</span>
-                  </div>
+                  {propiedad.tipo !== 'Terreno' && (
+                    <>
+                      <div className="flex items-center gap-1">
+                        <Bed className="w-4 h-4" />
+                        <span>{propiedad.habitaciones || 0}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Bath className="w-4 h-4" />
+                        <span>{propiedad.banos || 0}</span>
+                      </div>
+                    </>
+                  )}
                   <div className="flex items-center gap-1">
                     <Maximize className="w-4 h-4" />
                     <span>{propiedad.metros2 || 0}m²</span>
