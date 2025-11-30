@@ -1,19 +1,32 @@
 import Link from 'next/link'
+import { MapPin, Phone, Mail, MessageCircle } from 'lucide-react'
 
 export default function Footer() {
   const year = new Date().getFullYear()
 
   return (
-    <footer className="nav-footer-theme">
-      <div className="text-footer container mx-auto px-4 py-12">
+    <footer className="footer-bg">
+      <div className="container mx-auto px-4 py-12">
 
         {/* GRID PRINCIPAL */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
 
           {/* ABOUT */}
           <div>
-            <h3 className="text-xl font-bold mb-4 text-arena">BienesRaíces</h3>
-            <p className="text-niebla leading-relaxed text-sm">
+            <h3 className="text-2xl font-bold mb-4">
+              <span className="text-blanco">Multi</span>
+              <span 
+                style={{
+                  background: 'linear-gradient(135deg, #FF8C00, #E04A1F, #FFD700)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text'
+                }}
+              >
+                inmuebles
+              </span>
+            </h3>
+            <p className="text-gris-medio leading-relaxed text-sm mb-6">
               Especialistas en compra y venta de bienes raíces en Quetzaltenango y sus alrededores.
               Encuentra propiedades confiables, asesoría profesional y procesos transparentes.
             </p>
@@ -23,52 +36,107 @@ export default function Footer() {
               href="https://wa.me/50240000000"
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-4 inline-block bg-cerro-verde hover:bg-arena text-niebla font-semibold px-6 py-2 rounded-xl transition"
+              className="inline-flex items-center gap-2 btn-cta px-6 py-3 rounded-lg font-semibold transition-all shadow-naranja"
             >
+              <MessageCircle className="w-5 h-5" />
               Contactar por WhatsApp
             </a>
           </div>
 
           {/* ENLACES */}
           <div>
-            <h4 className="text-lg font-bold mb-4 text-arena">Enlaces</h4>
-            <ul className="space-y-2">
+            <h4 className="text-lg font-bold mb-6 footer-heading">Enlaces Rápidos</h4>
+            <ul className="space-y-3">
               <li>
-                <Link href="/" className="text-niebla hover:text-arena transition text-sm">Inicio</Link>
+                <Link 
+                  href="/" 
+                  className="footer-link flex items-center gap-2 text-sm group"
+                >
+                  <span className="text-naranja group-hover:translate-x-1 transition-transform">→</span>
+                  Inicio
+                </Link>
               </li>
               <li>
-                <Link href="/propiedades" className="text-niebla hover:text-arena transition text-sm">Propiedades</Link>
+                <Link 
+                  href="/propiedades" 
+                  className="footer-link flex items-center gap-2 text-sm group"
+                >
+                  <span className="text-naranja group-hover:translate-x-1 transition-transform">→</span>
+                  Propiedades
+                </Link>
               </li>
               <li>
-                <Link href="/nosotros" className="text-niebla hover:text-arena transition text-sm">Sobre Nosotros</Link>
+                <Link 
+                  href="/nosotros" 
+                  className="footer-link flex items-center gap-2 text-sm group"
+                >
+                  <span className="text-naranja group-hover:translate-x-1 transition-transform">→</span>
+                  Sobre Nosotros
+                </Link>
               </li>
               <li>
-                <Link href="/contacto" className="text-niebla hover:text-arena transition text-sm">Contáctanos</Link>
+                <Link 
+                  href="/contacto" 
+                  className="footer-link flex items-center gap-2 text-sm group"
+                >
+                  <span className="text-naranja group-hover:translate-x-1 transition-transform">→</span>
+                  Contáctanos
+                </Link>
               </li>
             </ul>
           </div>
 
           {/* CONTACTO */}
           <div>
-            <h4 className="text-lg font-bold mb-4 text-arena">Contacto</h4>
-            <div className="space-y-3 text-niebla text-sm">
-              <p>
-                <span className="text-arena font-semibold">Teléfono:</span><br /> +502 4000 0000
-              </p>
-              <p>
-                <span className="text-arena font-semibold">Email:</span><br /> contacto@bienesraices.com
-              </p>
-              <p>
-                <span className="text-arena font-semibold">Ubicación:</span><br />
-                Quetzaltenango, Guatemala
-              </p>
+            <h4 className="text-lg font-bold mb-6 footer-heading">Información de Contacto</h4>
+            <div className="space-y-4">
+              
+              {/* TELÉFONO */}
+              <div className="flex items-start gap-3 group">
+                <Phone className="w-5 h-5 text-naranja mt-1 group-hover:rotate-12 transition-transform" />
+                <div>
+                  <p className="text-gris-medio text-xs font-medium mb-1">Teléfono</p>
+                  <a 
+                    href="tel:+50240000000" 
+                    className="phone-number hover:text-naranja transition-colors"
+                  >
+                    +502 4000 0000
+                  </a>
+                </div>
+              </div>
+
+              {/* EMAIL */}
+              <div className="flex items-start gap-3 group">
+                <Mail className="w-5 h-5 text-naranja mt-1 group-hover:scale-110 transition-transform" />
+                <div>
+                  <p className="text-gris-medio text-xs font-medium mb-1">Correo Electrónico</p>
+                  <a 
+                    href="mailto:contacto@multinmuebles.com" 
+                    className="text-blanco hover:text-naranja transition-colors text-sm"
+                  >
+                    contacto@multinmuebles.com
+                  </a>
+                </div>
+              </div>
+
+              {/* UBICACIÓN */}
+              <div className="flex items-start gap-3 group">
+                <MapPin className="w-5 h-5 text-naranja mt-1 group-hover:bounce transition-transform" />
+                <div>
+                  <p className="text-gris-medio text-xs font-medium mb-1">Ubicación</p>
+                  <p className="text-blanco text-sm">
+                    Quetzaltenango, Guatemala
+                  </p>
+                </div>
+              </div>
+
             </div>
           </div>
 
           {/* MAPA */}
           <div>
-            <h4 className="text-lg font-bold mb-4 text-arena">Nuestra Ubicación</h4>
-            <div className="rounded-xl overflow-hidden shadow-lg">
+            <h4 className="text-lg font-bold mb-6 footer-heading">Encuéntranos</h4>
+            <div className="rounded-xl overflow-hidden shadow-lg border-2 border-naranja/30 hover:border-naranja transition-all">
               <iframe
                 src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3877.719642438568!2d-91.5189!3d14.8453!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x85894a5d2abcd123%3A0xee7b2ce060a9c9e7!2sQuetzaltenango!5e0!3m2!1ses!2sgt!4v1234567890"
                 width="100%"
@@ -76,21 +144,24 @@ export default function Footer() {
                 style={{ border: 0 }}
                 allowFullScreen=""
                 loading="lazy"
+                title="Ubicación Multinmuebles"
               ></iframe>
             </div>
           </div>
 
         </div>
 
-        {/* DIVISOR */}
-        <div className="border-t border-niebla/30 pt-8">
+        {/* DIVISOR CON DEGRADADO */}
+        <div className="border-t border-gris-oscuro/50 pt-8">
 
-          {/* REDES */}
+          {/* REDES SOCIALES */}
           <div className="flex justify-center gap-6 mb-6">
+            
+            {/* FACEBOOK */}
             <a
               href="https://facebook.com"
               aria-label="Facebook"
-              className="text-niebla hover:text-arena transition"
+              className="w-12 h-12 flex items-center justify-center rounded-full bg-gris-oscuro hover:bg-gradient-cta text-blanco transition-all shadow-md hover:shadow-naranja hover:scale-110"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -98,10 +169,12 @@ export default function Footer() {
                 <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
               </svg>
             </a>
+
+            {/* INSTAGRAM */}
             <a
               href="https://instagram.com"
               aria-label="Instagram"
-              className="text-niebla hover:text-arena transition"
+              className="w-12 h-12 flex items-center justify-center rounded-full bg-gris-oscuro hover:bg-gradient-cta text-blanco transition-all shadow-md hover:shadow-naranja hover:scale-110"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -110,10 +183,12 @@ export default function Footer() {
                 <circle cx="12" cy="12" r="3.6" />
               </svg>
             </a>
+
+            {/* LINKEDIN */}
             <a
               href="https://linkedin.com"
               aria-label="LinkedIn"
-              className="text-niebla hover:text-arena transition"
+              className="w-12 h-12 flex items-center justify-center rounded-full bg-gris-oscuro hover:bg-gradient-cta text-blanco transition-all shadow-md hover:shadow-naranja hover:scale-110"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -121,15 +196,39 @@ export default function Footer() {
                 <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.475-2.236-1.986-2.236-1.081 0-1.722.722-2.006 1.419-.103.249-.129.597-.129.946v5.44h-3.562s.05-8.82 0-9.737h3.562v1.378c.43-.664 1.199-1.608 2.925-1.608 2.134 0 3.734 1.39 3.734 4.38v5.587zM5.337 9.433c-1.144 0-1.915-.762-1.915-1.715 0-.953.77-1.715 1.926-1.715.955 0 1.926.762 1.915 1.715 0 .953-.77 1.715-1.926 1.715zm1.946 11.019H3.394V9.694h3.889v10.758zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.225 0z" />
               </svg>
             </a>
+
           </div>
 
           {/* COPYRIGHT */}
-          <p className="text-center text-niebla text-sm font-semibold">
-            &copy; {year} BienesRaíces — Todos los derechos reservados.
-          </p>
-          <p className="text-center text-niebla/80 text-xs mt-1 opacity-90">
-            Propiedades en venta en Quetzaltenango • Casas • Terrenos • Apartamentos
-          </p>
+          <div className="text-center space-y-2">
+            <p className="text-blanco text-sm font-semibold">
+              &copy; {year}{' '}
+              <span className="text-blanco">Multi</span>
+              <span 
+                style={{
+                  background: 'linear-gradient(135deg, #FF8C00, #E04A1F, #FFD700)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text'
+                }}
+              >
+                inmuebles
+              </span>
+              {' '}— Todos los derechos reservados.
+            </p>
+            <p className="text-gris-medio text-xs opacity-80">
+              Propiedades en venta en Quetzaltenango • Casas • Terrenos • Apartamentos
+            </p>
+            <div className="flex justify-center gap-4 text-xs text-gris-medio pt-2">
+              <Link href="/privacidad" className="hover:text-naranja transition-colors">
+                Política de Privacidad
+              </Link>
+              <span>|</span>
+              <Link href="/terminos" className="hover:text-naranja transition-colors">
+                Términos y Condiciones
+              </Link>
+            </div>
+          </div>
 
         </div>
       </div>

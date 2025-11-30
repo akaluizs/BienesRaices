@@ -1,157 +1,384 @@
-import { Users, Target, Award, Heart } from 'lucide-react';
+'use client';
+
+import Link from 'next/link';
+import { 
+  Award, 
+  Target, 
+  Eye, 
+  Users, 
+  TrendingUp, 
+  Home, 
+  Shield, 
+  Clock, 
+  CheckCircle,
+  Phone,
+  Mail,
+  MapPin,
+  Handshake
+} from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 export default function NosotrosPage() {
-  const values = [
+  
+  const stats = [
     {
-      icon: Target,
-      title: 'Transparencia',
-      description: 'Procesos claros y honestos en cada transacción inmobiliaria.',
-    },
-    {
-      icon: Heart,
-      title: 'Confianza',
-      description: 'Somos tu socio en la búsqueda del hogar de tus sueños.',
-    },
-    {
-      icon: Award,
-      title: 'Excelencia',
-      description: 'Servicio de calidad premium con atención personalizada.',
+      icon: Home,
+      number: "120+",
+      label: "Propiedades Vendidas",
+      color: "text-naranja"
     },
     {
       icon: Users,
-      title: 'Comunidad',
-      description: 'Trabajamos por el desarrollo inmobiliario de Quetzaltenango.',
+      number: "300+",
+      label: "Familias Satisfechas",
+      color: "text-rojo-naranja"
     },
+    {
+      icon: TrendingUp,
+      number: "10+",
+      label: "Años de Experiencia",
+      color: "text-amarillo-dorado"
+    },
+    {
+      icon: Award,
+      number: "98%",
+      label: "Satisfacción del Cliente",
+      color: "text-naranja"
+    }
   ];
 
-  const team = [
+  const values = [
     {
-      id: 1,
-      name: 'Carlos Mendez',
-      position: 'Gerente General',
-      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop',
-      description: '20 años de experiencia en bienes raíces',
+      icon: Shield,
+      title: "Transparencia",
+      description: "Procesos claros y honestos en cada transacción. Sin letra pequeña ni sorpresas."
     },
     {
-      id: 2,
-      name: 'María López',
-      position: 'Asesora Inmobiliaria',
-      image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop',
-      description: 'Especialista en propiedades residenciales',
+      icon: Handshake,
+      title: "Confianza",
+      description: "Construimos relaciones duraderas basadas en la confianza mutua y el profesionalismo."
     },
     {
-      id: 3,
-      name: 'Juan García',
-      position: 'Asesor Legal',
-      image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop',
-      description: 'Abogado especializado en derecho inmobiliario',
+      icon: CheckCircle,
+      title: "Compromiso",
+      description: "Dedicados a encontrar la solución perfecta para cada cliente y su familia."
     },
+    {
+      icon: Target,
+      title: "Excelencia",
+      description: "Búsqueda constante de la calidad en nuestro servicio y atención al cliente."
+    }
   ];
 
   return (
-    <main className="body-theme">
-      {/* HERO NOSOTROS */}
-      <section className="hero-theme py-20">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-niebla mb-6">
-            Sobre Nosotros
-          </h1>
-          <p className="text-lg md:text-xl text-niebla/90 max-w-3xl mx-auto">
-            Más de una década sirviendo a la comunidad de Quetzaltenango en bienes raíces
-          </p>
+    <div className="min-h-screen bg-gris-claro">
+      
+      {/* HERO SECTION */}
+      <section className="bg-gradient-primary text-blanco py-20 relative overflow-hidden">
+        {/* Decoración de fondo */}
+        <div className="absolute top-0 left-0 w-full h-full opacity-10">
+          <div className="absolute top-20 left-10 w-64 h-64 bg-amarillo-dorado rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-20 right-10 w-80 h-80 bg-blanco rounded-full blur-3xl animate-pulse delay-1000" />
         </div>
-      </section>
 
-      {/* QUIÉNES SOMOS */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            {/* TEXTO */}
-            <div>
-              <h2 className="text-3xl md:text-4xl font-bold text-xela-navy mb-6">
-                ¿Quiénes Somos?
-              </h2>
-              <p className="text-granito text-lg mb-4 leading-relaxed">
-                BienesRaíces es una empresa especializada en la compra, venta y alquiler de propiedades
-                en Quetzaltenango y sus alrededores. Con más de 10 años de experiencia, hemos ayudado
-                a cientos de familias a encontrar su hogar ideal.
-              </p>
-              <p className="text-granito text-lg mb-4 leading-relaxed">
-                Nuestro equipo está compuesto por profesionales capacitados en derecho inmobiliario,
-                tasación de propiedades y atención al cliente. Nos comprometemos a ofrecerte las mejores
-                opciones del mercado con transparencia y ética.
-              </p>
-              <p className="text-granito text-lg leading-relaxed">
-                Creemos que cada cliente merece un servicio personalizado y de calidad. Tu satisfacción
-                es nuestro mayor logro.
-              </p>
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="max-w-4xl mx-auto text-center">
+            
+            <div className="inline-flex items-center gap-2 bg-blanco/10 backdrop-blur-md border border-amarillo-dorado/30 rounded-full px-6 py-2 mb-6">
+              <Users className="w-5 h-5 text-amarillo-dorado" />
+              <span className="text-blanco font-semibold text-sm">
+                Conócenos
+              </span>
             </div>
 
-            {/* IMAGEN */}
-            <div className="relative">
-              <div className="rounded-2xl overflow-hidden shadow-xl">
-                <img
-                  src="https://images.unsplash.com/photo-1552664730-d307ca884978?w=600&h=500&fit=crop"
-                  alt="Equipo BienesRaíces"
-                  className="w-full h-auto object-cover"
-                />
-              </div>
-              <div className="absolute -bottom-6 -right-6 bg-cerro-verde text-white p-6 rounded-2xl shadow-lg">
-                <p className="text-3xl font-bold">10+</p>
-                <p className="text-sm">Años de experiencia</p>
-              </div>
-            </div>
+            <h1 className="text-4xl md:text-6xl font-extrabold mb-6">
+              Sobre{' '}
+              <span className="text-amarillo-dorado">Multinmuebles</span>
+            </h1>
+            
+            <p className="text-xl text-blanco/90 leading-relaxed max-w-3xl mx-auto">
+              Somos una empresa guatemalteca especializada en bienes raíces, 
+              comprometida con ayudar a familias a encontrar su hogar ideal 
+              en Quetzaltenango y sus alrededores.
+            </p>
           </div>
         </div>
       </section>
 
-      {/* VALORES */}
-      <section className="py-20 bg-niebla">
+      {/* ESTADÍSTICAS */}
+      <section className="py-16 bg-blanco">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-xela-navy text-center mb-12">
-            Nuestros Valores
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {values.map((value, index) => {
-              const Icon = value.icon;
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {stats.map((stat, index) => {
+              const Icon = stat.icon;
               return (
-                <div
+                <Card 
                   key={index}
-                  className="bg-white rounded-xl p-8 text-center shadow-md hover:shadow-xl transition-shadow"
+                  className="border-2 border-gris-medio hover:border-naranja transition-all hover:shadow-xl group"
                 >
-                  <Icon className="w-12 h-12 text-cerro-verde mx-auto mb-4" />
-                  <h3 className="text-xl font-bold text-xela-navy mb-3">
-                    {value.title}
-                  </h3>
-                  <p className="text-granito text-sm leading-relaxed">
-                    {value.description}
-                  </p>
-                </div>
+                  <CardContent className="p-8 text-center">
+                    <div className="flex items-center justify-center mb-4">
+                      <div className="w-16 h-16 bg-gradient-cta rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-naranja">
+                        <Icon className="w-8 h-8 text-blanco" />
+                      </div>
+                    </div>
+                    
+                    <p className="text-4xl font-extrabold text-naranja mb-2 group-hover:scale-110 transition-transform">
+                      {stat.number}
+                    </p>
+                    
+                    <p className="text-gris-oscuro font-semibold text-sm">
+                      {stat.label}
+                    </p>
+                  </CardContent>
+                </Card>
               );
             })}
           </div>
         </div>
       </section>
 
-      {/* CTA FINAL */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-xela-navy mb-4">
-            ¿Listo para encontrar tu propiedad?
-          </h2>
-          <p className="text-granito text-lg mb-8 max-w-2xl mx-auto">
-            Contáctanos hoy y déjate guiar por nuestro equipo profesional
-          </p>
-          <a
-            href="/contacto"
-            className="inline-block bg-cerro-verde hover:bg-xela-navy text-white font-bold py-4 px-8 rounded-lg transition-colors duration-300 group inline-flex items-center gap-2"
-          >
-            Contáctanos Ahora
-            <span className="group-hover:translate-x-1 transition-transform">→</span>
-          </a>
+      {/* MISIÓN Y VISIÓN */}
+      <section className="py-20 bg-gris-claro">
+        <div className="container mx-auto px-4">
+          
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold text-gris-oscuro mb-4">
+              Nuestra <span className="text-naranja">Filosofía</span>
+            </h2>
+            <p className="text-gris-oscuro/70 text-lg max-w-3xl mx-auto">
+              Guiados por principios sólidos que definen nuestro compromiso con cada cliente
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto mb-16">
+            
+            {/* MISIÓN */}
+            <Card className="border-2 border-naranja/30 hover:border-naranja transition-all hover:shadow-2xl group">
+              <CardContent className="p-10">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-16 h-16 bg-gradient-cta rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-naranja">
+                    <Target className="w-8 h-8 text-blanco" />
+                  </div>
+                  <h3 className="text-3xl font-bold text-gris-oscuro">Misión</h3>
+                </div>
+                
+                <p className="text-gris-oscuro/80 leading-relaxed text-lg">
+                  Facilitar el acceso a propiedades de calidad en Quetzaltenango, 
+                  brindando asesoría profesional, transparencia en cada proceso y 
+                  acompañamiento integral para que cada familia encuentre su hogar soñado.
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* VISIÓN */}
+            <Card className="border-2 border-amarillo-dorado/30 hover:border-amarillo-dorado transition-all hover:shadow-2xl group">
+              <CardContent className="p-10">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-16 h-16 bg-gradient-to-br from-amarillo-dorado to-naranja rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
+                    <Eye className="w-8 h-8 text-blanco" />
+                  </div>
+                  <h3 className="text-3xl font-bold text-gris-oscuro">Visión</h3>
+                </div>
+                
+                <p className="text-gris-oscuro/80 leading-relaxed text-lg">
+                  Ser la inmobiliaria líder y más confiable de Guatemala, reconocida 
+                  por nuestra excelencia en el servicio, innovación tecnológica y 
+                  compromiso genuino con el bienestar de nuestros clientes.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* VALORES */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {values.map((value, index) => {
+              const Icon = value.icon;
+              return (
+                <Card 
+                  key={index}
+                  className="border-2 border-gris-medio hover:border-naranja transition-all hover:shadow-xl group"
+                >
+                  <CardContent className="p-8 text-center">
+                    <div className="flex items-center justify-center mb-4">
+                      <div className="w-16 h-16 bg-naranja/20 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <Icon className="w-8 h-8 text-naranja" />
+                      </div>
+                    </div>
+                    
+                    <h4 className="text-xl font-bold text-gris-oscuro mb-3">
+                      {value.title}
+                    </h4>
+                    
+                    <p className="text-gris-oscuro/70 text-sm leading-relaxed">
+                      {value.description}
+                    </p>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         </div>
       </section>
-    </main>
+
+      {/* POR QUÉ ELEGIRNOS */}
+      <section className="py-20 bg-blanco">
+        <div className="container mx-auto px-4">
+          
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold text-gris-oscuro mb-4">
+              ¿Por Qué Elegir <span className="text-naranja">Multinmuebles</span>?
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            
+            <Card className="border-2 border-gris-medio hover:border-naranja transition-all hover:shadow-xl group">
+              <CardContent className="p-8">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-14 h-14 bg-gradient-cta rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Shield className="w-7 h-7 text-blanco" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gris-oscuro">
+                    Procesos Seguros
+                  </h3>
+                </div>
+                <p className="text-gris-oscuro/70 leading-relaxed">
+                  Gestión legal completa y transparente. Cada transacción está respaldada 
+                  por profesionales expertos.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 border-gris-medio hover:border-naranja transition-all hover:shadow-xl group">
+              <CardContent className="p-8">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-14 h-14 bg-gradient-cta rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Clock className="w-7 h-7 text-blanco" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gris-oscuro">
+                    Atención Rápida
+                  </h3>
+                </div>
+                <p className="text-gris-oscuro/70 leading-relaxed">
+                  Respuesta inmediata a tus consultas. Seguimiento personalizado 
+                  en cada etapa del proceso.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 border-gris-medio hover:border-naranja transition-all hover:shadow-xl group">
+              <CardContent className="p-8">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-14 h-14 bg-gradient-cta rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Home className="w-7 h-7 text-blanco" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gris-oscuro">
+                    Amplio Catálogo
+                  </h3>
+                </div>
+                <p className="text-gris-oscuro/70 leading-relaxed">
+                  Más de 120 propiedades verificadas en las mejores zonas de 
+                  Quetzaltenango.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 border-gris-medio hover:border-naranja transition-all hover:shadow-xl group">
+              <CardContent className="p-8">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-14 h-14 bg-gradient-cta rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Users className="w-7 h-7 text-blanco" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gris-oscuro">
+                    Asesoría Experta
+                  </h3>
+                </div>
+                <p className="text-gris-oscuro/70 leading-relaxed">
+                  Equipo profesional con más de 10 años de experiencia en el 
+                  sector inmobiliario.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 border-gris-medio hover:border-naranja transition-all hover:shadow-xl group">
+              <CardContent className="p-8">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-14 h-14 bg-gradient-cta rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <CheckCircle className="w-7 h-7 text-blanco" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gris-oscuro">
+                    Sin Comisiones Ocultas
+                  </h3>
+                </div>
+                <p className="text-gris-oscuro/70 leading-relaxed">
+                  Precios claros y transparentes. Sin sorpresas ni costos adicionales 
+                  inesperados.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 border-gris-medio hover:border-naranja transition-all hover:shadow-xl group">
+              <CardContent className="p-8">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-14 h-14 bg-gradient-cta rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <MapPin className="w-7 h-7 text-blanco" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gris-oscuro">
+                    Conocemos Xela
+                  </h3>
+                </div>
+                <p className="text-gris-oscuro/70 leading-relaxed">
+                  Expertos locales que conocen cada zona, ventajas y oportunidades 
+                  de la región.
+                </p>
+              </CardContent>
+            </Card>
+
+          </div>
+        </div>
+      </section>
+
+      {/* CTA FINAL */}
+      <section className="py-20 bg-gradient-primary text-blanco">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto text-center">
+            
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-blanco/20 backdrop-blur-lg rounded-full mb-8">
+              <Phone className="w-10 h-10 text-amarillo-dorado" />
+            </div>
+
+            <h2 className="text-3xl md:text-5xl font-bold mb-6">
+              ¿Listo para encontrar tu <span className="text-amarillo-dorado">hogar ideal</span>?
+            </h2>
+            
+            <p className="text-xl text-blanco/90 mb-10 max-w-2xl mx-auto">
+              Contáctanos hoy y déjanos ayudarte a hacer realidad el sueño de tu 
+              propiedad perfecta en Quetzaltenango.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href="/contacto">
+                <Button className="btn-secondary px-10 py-6 rounded-xl font-bold text-lg shadow-xl hover:scale-105 transition-transform">
+                  <Mail className="w-6 h-6 mr-2" />
+                  Contáctanos
+                </Button>
+              </Link>
+
+              <Link href="/propiedades">
+                <Button 
+                  variant="outline"
+                  className="px-10 py-6 rounded-xl font-bold text-lg bg-blanco/10 backdrop-blur-lg border-2 border-blanco text-blanco hover:bg-blanco hover:text-naranja transition-all shadow-xl"
+                >
+                  <Home className="w-6 h-6 mr-2" />
+                  Ver Propiedades
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
   );
 }

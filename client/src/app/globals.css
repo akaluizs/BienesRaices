@@ -1,391 +1,185 @@
 @import "tailwindcss";
 
+/* ============================================
+   PALETA DE COLORES MULTINMUEBLES
+   ============================================ */
+
 :root {
-  --xela-navy: #0B1C32; 
-  --cerro-verde: #3A6351;
-  --niebla: #E8ECEF;
-  --arena: #D9CBB8;
-  --granito: #3F3F46;
-  --hero-bg: #7F7F7F;
+  /* Colores Principales */
+  --naranja: #FF8C00;
+  --rojo-naranja: #E04A1F;
+  --amarillo-dorado: #FFD700;
+  --blanco: #FFFFFF;
+  --negro: #000000;
+
+  /* Colores Auxiliares */
+  --gris-claro: #f5f5f5;
+  --gris-medio: #e0e0e0;
+  --gris-oscuro: #333333;
+
+  /* Degradados */
+  --gradient-primary: linear-gradient(135deg, var(--naranja), var(--rojo-naranja), var(--amarillo-dorado));
+  --gradient-cta: linear-gradient(135deg, var(--naranja), var(--rojo-naranja));
+  --gradient-cta-hover: linear-gradient(135deg, var(--rojo-naranja), var(--naranja));
 }
+
+/* ============================================
+   ESTILOS BASE
+   ============================================ */
 
 body {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
-  background-color: var(--niebla);
+  background-color: var(--blanco);
+  color: var(--gris-oscuro);
 }
 
-@layer base {
-  html {
-    @apply scroll-smooth;
-  }
+/* ============================================
+   BOTONES
+   ============================================ */
+
+.btn-primary {
+  background-color: var(--naranja);
+  color: var(--blanco);
+  transition: all 0.3s ease;
 }
 
-.body-theme {
-  background: var(--niebla);
-  color: var(--granito);
-  font-family: Arial, Helvetica, sans-serif;
+.btn-primary:hover {
+  background-color: var(--rojo-naranja);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 140, 0, 0.3);
 }
 
-.nav-footer-theme {
-  background: linear-gradient(135deg, var(--xela-navy) 0%, var(--cerro-verde) 100%);
-  color: var(--niebla);
-  font-family: Arial, Helvetica, sans-serif;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+.btn-cta {
+  background: var(--gradient-cta);
+  color: var(--blanco);
+  transition: all 0.3s ease;
 }
 
-.hero-theme {
-  background: linear-gradient(135deg, var(--xela-navy) 0%, var(--cerro-verde) 100%);
-  color: var(--niebla);
-  font-family: 'Inter', Arial, Helvetica, sans-serif;
+.btn-cta:hover {
+  background: var(--gradient-cta-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(224, 74, 31, 0.4);
 }
 
-.text-footer {
-  color: var(--niebla);
-  font-family: Arial, Helvetica, sans-serif;
-  line-height: 1.6;
+/* ============================================
+   TARJETAS
+   ============================================ */
+
+.card-service {
+  background: var(--blanco);
+  border-top: 5px solid var(--naranja);
+  color: var(--gris-oscuro);
+  transition: all 0.3s ease;
 }
 
-.text-footer p {
-  margin: 0.5rem 0;
+.card-service:hover {
+  border-top-color: var(--rojo-naranja);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  transform: translateY(-4px);
 }
 
-.text-footer a {
-  color: var(--niebla);
+.card-property {
+  background: var(--blanco);
+  border: 1px solid var(--gris-medio);
+  transition: all 0.3s ease;
+}
+
+.card-property:hover {
+  border-color: var(--naranja);
+  box-shadow: 0 8px 24px rgba(255, 140, 0, 0.2);
+  transform: translateY(-4px);
+}
+
+/* ============================================
+   ELEMENTOS DESTACADOS
+   ============================================ */
+
+.phone-number {
+  color: var(--rojo-naranja);
+  font-weight: bold;
+  font-size: 1.125rem;
+}
+
+.premium-feature {
+  color: var(--amarillo-dorado);
+  font-weight: 600;
+}
+
+.accent-border {
+  border-left: 4px solid var(--rojo-naranja);
+  padding-left: 1rem;
+}
+
+.icon-highlight {
+  color: var(--naranja);
+}
+
+/* ============================================
+   HERO SECTION
+   ============================================ */
+
+.hero-gradient {
+  background: var(--gradient-primary);
+  color: var(--blanco);
+}
+
+.hero-overlay {
+  background: linear-gradient(135deg, 
+    rgba(255, 140, 0, 0.9), 
+    rgba(224, 74, 31, 0.9), 
+    rgba(255, 215, 0, 0.8)
+  );
+}
+
+/* ============================================
+   FOOTER
+   ============================================ */
+
+.footer-bg {
+  background-color: var(--negro);
+  color: var(--blanco);
+}
+
+.footer-heading {
+  color: var(--amarillo-dorado);
+  font-weight: 600;
+}
+
+.footer-link {
+  color: var(--gris-medio);
   transition: color 0.3s ease;
 }
 
-.text-footer a:hover {
-  color: var(--arena);
-}
-
-/* Clases de utilidad para colores */
-.bg-xela-navy {
-  background-color: var(--xela-navy);
-}
-
-.bg-cerro-verde {
-  background-color: var(--cerro-verde);
-}
-
-.bg-niebla {
-  background-color: var(--niebla);
-}
-
-.bg-arena {
-  background-color: var(--arena);
-}
-
-.bg-granito {
-  background-color: var(--granito);
-}
-
-.text-xela-navy {
-  color: var(--xela-navy);
-}
-
-.text-cerro-verde {
-  color: var(--cerro-verde);
-}
-
-.text-niebla {
-  color: var(--niebla);
-}
-
-.text-arena {
-  color: var(--arena);
-}
-
-.text-granito {
-  color: var(--granito);
-}
-
-/* ========== TIPOGRAFÍA PÁGINA DE PROPIEDADES ========== */
-.property-page {
-  --heading-color: var(--xela-navy);
-  --text-color: var(--granito);
-}
-
-.property-page .h1 {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: var(--heading-color);
-  line-height: 1.2;
-  letter-spacing: -0.02em;
-}
-
-.property-page .h2 {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--heading-color);
-  line-height: 1.3;
-  letter-spacing: -0.01em;
-}
-
-.property-page .h3 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--heading-color);
-  line-height: 1.4;
-}
-
-.property-page .h4 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--heading-color);
-  line-height: 1.4;
-}
-
-.property-page .body-lg {
-  font-size: 1.125rem;
-  line-height: 1.75;
-  color: var(--text-color);
-}
-
-.property-page .body-md {
-  font-size: 1rem;
-  line-height: 1.6;
-  color: var(--text-color);
-}
-
-.property-page .body-sm {
-  font-size: 0.875rem;
-  line-height: 1.5;
-  color: var(--text-color);
-}
-
-.property-page .body-xs {
-  font-size: 0.75rem;
-  line-height: 1.4;
-  color: var(--text-color);
-}
-
-.property-page .price {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: var(--cerro-verde);
-  letter-spacing: -0.02em;
-}
-
-.property-page .subtitle {
-  font-size: 1.25rem;
-  font-weight: 500;
-  color: var(--text-color);
-  opacity: 0.9;
-}
-
-.property-page .label {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--text-color);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.property-page .caption {
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--text-color);
-  opacity: 0.7;
-}
-
-@media (max-width: 768px) {
-  .property-page .h1 {
-    font-size: 1.875rem;
-  }
-
-  .property-page .h2 {
-    font-size: 1.5rem;
-  }
-
-  .property-page .h3 {
-    font-size: 1.25rem;
-  }
-
-  .property-page .price {
-    font-size: 2rem;
-  }
-}
-
-/* ========== TIPOGRAFÍA PÁGINA DE CONTACTO ========== */
-.contact-page {
-  --heading-color: var(--niebla);
-  --text-color: var(--niebla);
-}
-
-.contact-page .h1 {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: var(--heading-color);
-  line-height: 1.2;
-  letter-spacing: -0.02em;
-}
-
-.contact-page .h2 {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--xela-navy);
-  line-height: 1.3;
-  letter-spacing: -0.01em;
-}
-
-.contact-page .body-lg {
-  font-size: 1.125rem;
-  line-height: 1.75;
-  color: var(--text-color);
-}
-
-.contact-page .label {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--granito);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.contact-page .subtitle {
-  font-size: 1.25rem;
-  font-weight: 500;
-  color: var(--granito);
-  opacity: 0.9;
-}
-
-.contact-page .body-sm {
-  font-size: 0.875rem;
-  line-height: 1.5;
-  color: var(--granito);
-}
-
-@media (max-width: 768px) {
-  .contact-page .h1 {
-    font-size: 1.875rem;
-  }
-
-  .contact-page .h2 {
-    font-size: 1.5rem;
-  }
-}
-
-/* ========== TIPOGRAFÍA PÁGINA DE NOSOTROS ========== */
-.about-page {
-  --heading-color: var(--xela-navy);
-  --text-color: var(--granito);
-}
-
-.about-page .h2 {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--heading-color);
-  line-height: 1.3;
-  letter-spacing: -0.01em;
-}
-
-.about-page .h3 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--heading-color);
-  line-height: 1.4;
-}
-
-.about-page .body-lg {
-  font-size: 1.125rem;
-  line-height: 1.75;
-  color: var(--text-color);
-}
-
-.about-page .body-sm {
-  font-size: 0.875rem;
-  line-height: 1.5;
-  color: var(--text-color);
-}
-
-@media (max-width: 768px) {
-  .about-page .h2 {
-    font-size: 1.5rem;
-  }
-
-  .about-page .h3 {
-    font-size: 1.25rem;
-  }
-}
-
-/* ========== TIPOGRAFÍA HERO ========== */
-.hero-title {
-  font-size: 3rem;
-  font-weight: 700;
-  color: var(--niebla);
-  line-height: 1.2;
-  letter-spacing: -0.02em;
-}
-
-.hero-subtitle {
-  font-size: 1.25rem;
-  font-weight: 400;
-  color: var(--niebla);
-  opacity: 0.9;
-  line-height: 1.6;
-}
-
-@media (max-width: 768px) {
-  .hero-title {
-    font-size: 2rem;
-  }
-
-  .hero-subtitle {
-    font-size: 1rem;
-  }
+.footer-link:hover {
+  color: var(--naranja);
 }
 
 /* ============================================
-   VIEW TRANSITIONS ANIMATIONS
+   NAVBAR
    ============================================ */
 
-/* Transición principal del contenido */
-::view-transition-old(main-content) {
-  animation: fade-slide-out 0.4s ease-in-out;
+.navbar-active {
+  color: var(--naranja);
+  font-weight: 600;
+  border-bottom: 3px solid var(--naranja);
 }
 
-::view-transition-new(main-content) {
-  animation: fade-slide-in 0.4s ease-in-out;
+.navbar-link {
+  color: var(--gris-oscuro);
+  transition: color 0.3s ease;
 }
 
-/* Animación de salida */
-@keyframes fade-slide-out {
-  from {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-}
-
-/* Animación de entrada */
-@keyframes fade-slide-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Transición suave por defecto */
-@supports (view-transition-name: auto) {
-  ::view-transition-old(root) {
-    animation: fade-out 0.3s cubic-bezier(0.4, 0, 1, 1);
-  }
-
-  ::view-transition-new(root) {
-    animation: fade-in 0.3s cubic-bezier(0, 0, 0.2, 1);
-  }
+.navbar-link:hover {
+  color: var(--naranja);
 }
 
 /* ============================================
-   VIEW TRANSITIONS - Solo Root
+   VIEW TRANSITIONS
    ============================================ */
 
 @media (prefers-reduced-motion: no-preference) {
@@ -415,3 +209,43 @@ body {
     }
   }
 }
+
+/* ============================================
+   UTILIDADES
+   ============================================ */
+
+.text-gradient {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.border-gradient {
+  border-image: var(--gradient-primary);
+  border-image-slice: 1;
+}
+
+/* ============================================
+   ESTADOS Y FEEDBACK
+   ============================================ */
+
+.success-badge {
+  background-color: var(--naranja);
+  color: var(--blanco);
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.premium-badge {
+  background: var(--gradient-primary);
+  color: var(--blanco);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+

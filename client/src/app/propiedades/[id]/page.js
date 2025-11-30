@@ -1,33 +1,56 @@
 'use client';
 
-import { use, useState, useEffect } from 'react';
-import Link from 'next/link';
+import { useState, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { MapPin, Ruler, Users, Droplet, Car, Phone, Mail, MessageSquare, Send, MessageCircle, ArrowRight, Loader2, Home } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { 
+  MapPin, 
+  Ruler, 
+  Users, 
+  Droplet, 
+  ArrowLeft, 
+  Phone, 
+  Mail, 
+  Share2,
+  CheckCircle,
+  Home,
+  DollarSign,
+  Calendar,
+  Loader2
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 
-export default function PropertyDetailPage({ params }) {
-  const { id } = use(params);
+export default function PropertyDetailPage() {
+  const params = useParams();
+  const router = useRouter();
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   useEffect(() => {
-    loadProperty();
-  }, [id]);
+    if (params.id) {
+      loadProperty();
+    }
+  }, [params.id]);
 
   const loadProperty = async () => {
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from('propiedades')
         .select('*')
-        .eq('id', id)
+        .eq('id', params.id)
         .single();
 
       if (error) throw error;
 
       if (data) {
-        // Transformar datos al formato del componente
-        setProperty({
+        const formattedProperty = {
           id: data.id,
           title: data.titulo,
           price: data.precio,
@@ -37,19 +60,10 @@ export default function PropertyDetailPage({ params }) {
           area: data.metros2,
           bedrooms: data.habitaciones,
           bathrooms: data.banos,
-          parking: null, // Si no tienes este campo
           type: data.tipo,
-          yearBuilt: null, // Si no tienes este campo
-          condition: 'Disponible',
-          features: [], // Si no tienes este campo
-          description_long: data.descripcion,
-          agent: {
-            name: 'Agente de Ventas',
-            phone: '+502 4000 0000',
-            email: 'info@bienesraices.com',
-            image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop',
-          },
-        });
+          createdAt: data.created_at,
+        };
+        setProperty(formattedProperty);
       }
     } catch (error) {
       console.error('Error cargando propiedad:', error);
@@ -58,247 +72,368 @@ export default function PropertyDetailPage({ params }) {
     }
   };
 
-  const nextImage = () => {
-    if (property && property.images.length > 0) {
-      setCurrentImageIndex((prev) => (prev + 1) % property.images.length);
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: property.title,
+          text: `Mira esta propiedad: ${property.title}`,
+          url: window.location.href,
+        });
+      } catch (error) {
+        console.log('Error compartiendo:', error);
+      }
+    } else {
+      // Fallback: copiar al portapapeles
+      navigator.clipboard.writeText(window.location.href);
+      alert('¡Enlace copiado al portapapeles!');
     }
   };
 
-  const prevImage = () => {
-    if (property && property.images.length > 0) {
-      setCurrentImageIndex((prev) => (prev - 1 + property.images.length) % property.images.length);
-    }
+  const handleWhatsApp = () => {
+    const message = `Hola, me interesa esta propiedad: ${property.title} - Q${property.price.toLocaleString()}. ${window.location.href}`;
+    const whatsappUrl = `https://wa.me/50240000000?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
   };
 
   if (loading) {
     return (
-      <div className="body-theme min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-cerro-verde" />
+      <div className="min-h-screen bg-gris-claro flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-16 h-16 animate-spin text-naranja mx-auto mb-4" />
+          <p className="text-gris-oscuro text-lg font-semibold">Cargando propiedad...</p>
+        </div>
       </div>
     );
   }
 
   if (!property) {
     return (
-      <div className="body-theme min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Home className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-          <h1 className="text-4xl font-bold text-xela-navy mb-4">Propiedad no encontrada</h1>
-          <Link href="/propiedades" className="text-cerro-verde hover:text-xela-navy">
-            ← Volver a propiedades
-          </Link>
-        </div>
+      <div className="min-h-screen bg-gris-claro flex items-center justify-center">
+        <Card className="max-w-md mx-4">
+          <CardContent className="p-12 text-center">
+            <Home className="w-16 h-16 text-gris-oscuro/50 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-gris-oscuro mb-4">
+              Propiedad no encontrada
+            </h2>
+            <p className="text-gris-oscuro/70 mb-6">
+              La propiedad que buscas no existe o fue removida.
+            </p>
+            <Link href="/propiedades">
+              <Button className="btn-cta px-8 py-3 rounded-xl font-bold shadow-naranja">
+                Ver Todas las Propiedades
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <main className="body-theme property-page">
-      {/* GALERÍA DE IMÁGENES */}
-      <section className="bg-white py-8">
+    <div className="min-h-screen bg-gris-claro">
+      
+      {/* HEADER CON BREADCRUMB */}
+      <section className="bg-blanco border-b border-gris-medio py-4">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* IMAGEN PRINCIPAL */}
-            <div className="lg:col-span-2">
-              <div className="relative h-96 md:h-[500px] rounded-2xl overflow-hidden bg-gray-200 group">
-                {property.images && property.images.length > 0 ? (
-                  <img
-                    src={property.images[currentImageIndex]}
-                    alt={property.title}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Home className="w-20 h-20 text-slate-400" />
-                  </div>
-                )}
+          <div className="flex items-center justify-between">
+            
+            {/* Botón volver */}
+            <Link href="/propiedades">
+              <Button 
+                variant="ghost" 
+                className="text-gris-oscuro hover:text-naranja transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5 mr-2" />
+                Volver a Propiedades
+              </Button>
+            </Link>
 
-                {/* CONTROLES DE GALERÍA */}
-                {property.images && property.images.length > 1 && (
+            {/* Botón compartir */}
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleShare}
+              className="border-2 border-gris-medio rounded-full hover:border-naranja"
+            >
+              <Share2 className="w-5 h-5" />
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* GALERÍA DE IMÁGENES */}
+      <section className="bg-negro">
+        <div className="container mx-auto px-4 py-8">
+          
+          {property.images && property.images.length > 0 ? (
+            <div className="space-y-4">
+              
+              {/* Imagen principal */}
+              <div className="relative h-[400px] md:h-[600px] rounded-2xl overflow-hidden">
+                <Image
+                  src={property.images[currentImageIndex]}
+                  alt={`${property.title} - Imagen ${currentImageIndex + 1}`}
+                  fill
+                  className="object-cover"
+                  priority
+                />
+                
+                {/* Badge de tipo */}
+                <div className="absolute top-4 right-4">
+                  <Badge className="bg-gradient-cta text-blanco font-bold px-6 py-2 text-base shadow-naranja">
+                    {property.type}
+                  </Badge>
+                </div>
+
+                {/* Navegación de imágenes */}
+                {property.images.length > 1 && (
                   <>
                     <button
-                      onClick={prevImage}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-xela-navy p-3 rounded-full transition z-10"
+                      onClick={() => setCurrentImageIndex(prev => 
+                        prev === 0 ? property.images.length - 1 : prev - 1
+                      )}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 bg-blanco/90 hover:bg-blanco text-negro p-3 rounded-full transition-all hover:scale-110"
                     >
-                      ←
-                    </button>
-                    <button
-                      onClick={nextImage}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-xela-navy p-3 rounded-full transition z-10"
-                    >
-                      →
+                      <ArrowLeft className="w-6 h-6" />
                     </button>
 
-                    {/* INDICADOR DE IMAGEN */}
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-full text-sm">
+                    <button
+                      onClick={() => setCurrentImageIndex(prev => 
+                        prev === property.images.length - 1 ? 0 : prev + 1
+                      )}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 bg-blanco/90 hover:bg-blanco text-negro p-3 rounded-full transition-all hover:scale-110 rotate-180"
+                    >
+                      <ArrowLeft className="w-6 h-6" />
+                    </button>
+
+                    {/* Indicador de imagen */}
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-negro/70 backdrop-blur-md text-blanco px-4 py-2 rounded-full text-sm font-semibold">
                       {currentImageIndex + 1} / {property.images.length}
                     </div>
                   </>
                 )}
               </div>
 
-              {/* MINIATURAS */}
-              {property.images && property.images.length > 1 && (
-                <div className="flex gap-4 mt-6 overflow-x-auto pb-2">
+              {/* Miniaturas */}
+              {property.images.length > 1 && (
+                <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
                   {property.images.map((image, index) => (
-                    <img
+                    <button
                       key={index}
-                      src={image}
-                      alt={`Miniatura ${index + 1}`}
                       onClick={() => setCurrentImageIndex(index)}
-                      className={`h-20 w-20 md:h-24 md:w-24 rounded-lg cursor-pointer object-cover transition ${
-                        currentImageIndex === index ? 'ring-2 ring-cerro-verde' : 'opacity-70 hover:opacity-100'
+                      className={`relative h-20 rounded-lg overflow-hidden transition-all ${
+                        index === currentImageIndex 
+                          ? 'ring-4 ring-naranja scale-105' 
+                          : 'opacity-70 hover:opacity-100'
                       }`}
-                    />
+                    >
+                      <Image
+                        src={image}
+                        alt={`Miniatura ${index + 1}`}
+                        fill
+                        className="object-cover"
+                      />
+                    </button>
                   ))}
                 </div>
               )}
             </div>
-
-            {/* INFORMACIÓN DERECHA */}
-            <div className="space-y-6">
-              {/* BADGE TIPO */}
-              {property.type && (
-                <div className="inline-block bg-cerro-verde text-white px-4 py-2 rounded-lg font-semibold text-sm">
-                  {property.type}
-                </div>
-              )}
-
-              {/* TÍTULO Y PRECIO */}
-              <div>
-                <h1 className="h1 mb-2">{property.title}</h1>
-                <p className="price mb-4">
-                  Q {property.price?.toLocaleString()}
-                </p>
-              </div>
-
-              {/* UBICACIÓN */}
-              <div className="flex items-start gap-3 text-granito">
-                <MapPin className="w-5 h-5 mt-1 flex-shrink-0" />
-                <div>
-                  <p className="font-semibold">{property.location}</p>
-                </div>
-              </div>
-
-              {/* CARACTERÍSTICAS PRINCIPALES */}
-              <div className="bg-niebla rounded-xl p-4 space-y-3">
-                {property.area && (
-                  <div className="flex items-center gap-3">
-                    <Ruler className="w-5 h-5 text-xela-navy" />
-                    <span className="text-granito">{property.area} m²</span>
-                  </div>
-                )}
-                {property.type !== 'Terreno' && property.bedrooms && (
-                  <div className="flex items-center gap-3">
-                    <Users className="w-5 h-5 text-xela-navy" />
-                    <span className="text-granito">{property.bedrooms} Habitaciones</span>
-                  </div>
-                )}
-                {property.type !== 'Terreno' && property.bathrooms && (
-                  <div className="flex items-center gap-3">
-                    <Droplet className="w-5 h-5 text-xela-navy" />
-                    <span className="text-granito">{property.bathrooms} Baños</span>
-                  </div>
-                )}
-                {property.parking && (
-                  <div className="flex items-center gap-3">
-                    <Car className="w-5 h-5 text-xela-navy" />
-                    <span className="text-granito">{property.parking} Parqueo</span>
-                  </div>
-                )}
-              </div>
-
-              {/* BOTONES */}
-              <div className="space-y-3 pt-4">
-                {/* BOTÓN CONTACTO */}
-                <a
-                  href={`/contacto?property=${id}`}
-                  className="w-full group bg-arena hover:bg-orange-500 text-xela-navy font-bold py-4 px-6 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-md hover:shadow-lg hover:-translate-y-1"
-                >
-                  <Send className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-                  <span>Solicitar Información</span>
-                  <ArrowRight className="w-5 h-5 opacity-0 group-hover:opacity-100 group-hover:translate-x-2 transition-all" />
-                </a>
-
-                {/* BOTÓN WHATSAPP */}
-                <a
-                  href={`https://wa.me/50240000000?text=Me%20interesa%20la%20propiedad:%20${property.title}%20-%20Q%20${property.price}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full group relative overflow-hidden bg-gradient-to-r from-green-500 to-green-600 hover:shadow-lg text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 flex items-center justify-center gap-2"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-green-600 to-green-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  <MessageCircle className="w-5 h-5 relative z-10 group-hover:scale-110 transition-transform" />
-                  <span className="relative z-10">WhatsApp</span>
-                  <ArrowRight className="w-5 h-5 relative z-10 opacity-0 group-hover:opacity-100 group-hover:translate-x-2 transition-all" />
-                </a>
-
-                {/* BOTÓN LLAMAR */}
-                <a
-                  href={`tel:${property.agent.phone}`}
-                  className="w-full group relative overflow-hidden bg-gradient-to-r from-arena to-orange-400 hover:shadow-lg text-xela-navy font-bold py-4 px-6 rounded-xl transition-all duration-300 flex items-center justify-center gap-2"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-orange-400 to-arena opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  <Phone className="w-5 h-5 relative z-10 group-hover:rotate-12 transition-transform" />
-                  <span className="relative z-10">Llamar</span>
-                  <ArrowRight className="w-5 h-5 relative z-10 opacity-0 group-hover:opacity-100 group-hover:translate-x-2 transition-all" />
-                </a>
-              </div>
+          ) : (
+            <div className="relative h-[400px] md:h-[600px] rounded-2xl overflow-hidden bg-gris-medio flex items-center justify-center">
+              <Home className="w-24 h-24 text-gris-oscuro/30" />
             </div>
-          </div>
+          )}
         </div>
       </section>
 
-      {/* DESCRIPCIÓN Y CARACTERÍSTICAS */}
-      <section className="py-16">
+      {/* CONTENIDO PRINCIPAL */}
+      <section className="py-12">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* DESCRIPCIÓN */}
-            <div className="lg:col-span-2">
-              <h2 className="h2 mb-6">Descripción</h2>
-              <p className="body-lg mb-8">
-                {property.description_long || property.description || 'Sin descripción disponible.'}
-              </p>
-
-              {/* CARACTERÍSTICAS */}
-              {property.features && property.features.length > 0 && (
-                <>
-                  <h3 className="h3 mb-6">Características</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {property.features.map((feature, index) => (
-                      <div key={index} className="flex items-center gap-3 bg-niebla p-4 rounded-lg hover:bg-arena/20 transition-colors">
-                        <div className="w-2 h-2 bg-cerro-verde rounded-full" />
-                        <span className="body-sm">{feature}</span>
+            
+            {/* COLUMNA PRINCIPAL - INFO */}
+            <div className="lg:col-span-2 space-y-8">
+              
+              {/* Título y precio */}
+              <Card>
+                <CardContent className="p-8">
+                  <div className="flex items-start justify-between mb-6">
+                    <div className="flex-1">
+                      <h1 className="text-3xl md:text-4xl font-extrabold text-gris-oscuro mb-4">
+                        {property.title}
+                      </h1>
+                      
+                      <div className="flex items-center gap-2 text-gris-oscuro mb-6">
+                        <MapPin className="w-5 h-5 text-naranja" />
+                        <p className="text-lg font-medium">{property.location}</p>
                       </div>
-                    ))}
+                    </div>
                   </div>
-                </>
-              )}
+
+                  <div className="bg-gradient-to-r from-naranja/10 to-amarillo-dorado/10 rounded-xl p-6 border-2 border-naranja/30">
+                    <p className="text-sm text-gris-oscuro/70 font-medium mb-2">Precio</p>
+                    <h2 className="text-4xl md:text-5xl font-extrabold">
+                      <span 
+                        style={{
+                          background: 'linear-gradient(135deg, #FF8C00, #E04A1F, #FFD700)',
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                          backgroundClip: 'text'
+                        }}
+                      >
+                        Q {property.price.toLocaleString()}
+                      </span>
+                    </h2>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Características */}
+              <Card>
+                <CardContent className="p-8">
+                  <h3 className="text-2xl font-bold text-gris-oscuro mb-6 flex items-center gap-3">
+                    <CheckCircle className="w-7 h-7 text-naranja" />
+                    Características
+                  </h3>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                    {property.area && (
+                      <div className="flex flex-col items-center p-6 bg-gris-claro rounded-xl hover:bg-naranja/10 transition-colors">
+                        <div className="bg-naranja/20 p-4 rounded-full mb-3">
+                          <Ruler className="w-8 h-8 text-naranja" />
+                        </div>
+                        <p className="text-3xl font-bold text-gris-oscuro mb-1">{property.area}</p>
+                        <p className="text-sm text-gris-oscuro/70 font-medium">m² de área</p>
+                      </div>
+                    )}
+
+                    {property.bedrooms && (
+                      <div className="flex flex-col items-center p-6 bg-gris-claro rounded-xl hover:bg-naranja/10 transition-colors">
+                        <div className="bg-naranja/20 p-4 rounded-full mb-3">
+                          <Users className="w-8 h-8 text-naranja" />
+                        </div>
+                        <p className="text-3xl font-bold text-gris-oscuro mb-1">{property.bedrooms}</p>
+                        <p className="text-sm text-gris-oscuro/70 font-medium">Habitaciones</p>
+                      </div>
+                    )}
+
+                    {property.bathrooms && (
+                      <div className="flex flex-col items-center p-6 bg-gris-claro rounded-xl hover:bg-naranja/10 transition-colors">
+                        <div className="bg-naranja/20 p-4 rounded-full mb-3">
+                          <Droplet className="w-8 h-8 text-naranja" />
+                        </div>
+                        <p className="text-3xl font-bold text-gris-oscuro mb-1">{property.bathrooms}</p>
+                        <p className="text-sm text-gris-oscuro/70 font-medium">Baños</p>
+                      </div>
+                    )}
+
+                    <div className="flex flex-col items-center p-6 bg-gris-claro rounded-xl hover:bg-naranja/10 transition-colors">
+                      <div className="bg-naranja/20 p-4 rounded-full mb-3">
+                        <Home className="w-8 h-8 text-naranja" />
+                      </div>
+                      <p className="text-lg font-bold text-gris-oscuro mb-1">{property.type}</p>
+                      <p className="text-sm text-gris-oscuro/70 font-medium">Tipo</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Descripción */}
+              <Card>
+                <CardContent className="p-8">
+                  <h3 className="text-2xl font-bold text-gris-oscuro mb-6">
+                    Descripción
+                  </h3>
+                  <p className="text-gris-oscuro/80 leading-relaxed text-lg whitespace-pre-line">
+                    {property.description}
+                  </p>
+                </CardContent>
+              </Card>
+
             </div>
 
-            {/* INFORMACIÓN ADICIONAL */}
-            <div className="bg-white rounded-2xl p-8 h-fit shadow-lg border border-niebla">
-              <h3 className="h3 mb-6">Detalles</h3>
-              <div className="space-y-4">
-                {property.yearBuilt && (
-                  <div className="pb-4 border-b border-niebla">
-                    <p className="label text-xs uppercase tracking-wide">Año de construcción</p>
-                    <p className="text-xela-navy font-bold body-md mt-1">{property.yearBuilt}</p>
+            {/* COLUMNA LATERAL - CONTACTO */}
+            <div className="lg:col-span-1">
+              <Card className="sticky top-24 border-2 border-naranja/30">
+                <CardContent className="p-8">
+                  
+                  <h3 className="text-2xl font-bold text-gris-oscuro mb-6 text-center">
+                    ¿Te interesa esta propiedad?
+                  </h3>
+
+                  <div className="space-y-4 mb-6">
+                    
+                    {/* WhatsApp */}
+                    <Button
+                      onClick={handleWhatsApp}
+                      className="w-full btn-cta py-6 text-base font-bold shadow-naranja group"
+                    >
+                      <Phone className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+                      Contactar por WhatsApp
+                    </Button>
+
+                    {/* Teléfono */}
+                    <a href="tel:+50240000000">
+                      <Button
+                        variant="outline"
+                        className="w-full border-2 border-naranja text-naranja hover:bg-naranja hover:text-blanco py-6 text-base font-bold transition-all"
+                      >
+                        <Phone className="w-5 h-5 mr-2" />
+                        +502 4000 0000
+                      </Button>
+                    </a>
+
+                    {/* Email */}
+                    <a href="mailto:contacto@multinmuebles.com">
+                      <Button
+                        variant="outline"
+                        className="w-full border-2 border-gris-medio hover:border-naranja hover:text-naranja py-6 text-base font-bold transition-all"
+                      >
+                        <Mail className="w-5 h-5 mr-2" />
+                        Enviar Email
+                      </Button>
+                    </a>
                   </div>
-                )}
-                <div className="pb-4 border-b border-niebla">
-                  <p className="label text-xs uppercase tracking-wide">Condición</p>
-                  <p className="text-xela-navy font-bold body-md mt-1">{property.condition}</p>
-                </div>
-                <div>
-                  <p className="label text-xs uppercase tracking-wide">Tipo de propiedad</p>
-                  <p className="text-xela-navy font-bold body-md mt-1">{property.type}</p>
-                </div>
-              </div>
+
+                  <Separator className="my-6" />
+
+                  {/* Info adicional */}
+                  <div className="space-y-4 text-sm">
+                    <div className="flex items-center gap-3 text-gris-oscuro/70">
+                      <Calendar className="w-5 h-5 text-naranja" />
+                      <span>
+                        Publicado: {new Date(property.createdAt).toLocaleDateString('es-GT')}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-gris-oscuro/70">
+                      <DollarSign className="w-5 h-5 text-naranja" />
+                      <span>Precio negociable</span>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-gris-oscuro/70">
+                      <CheckCircle className="w-5 h-5 text-naranja" />
+                      <span>Propiedad verificada</span>
+                    </div>
+                  </div>
+
+                  <Separator className="my-6" />
+
+                  <div className="bg-gradient-to-br from-naranja/10 to-amarillo-dorado/10 rounded-xl p-6 border border-naranja/30">
+                    <p className="text-center text-sm text-gris-oscuro/80 leading-relaxed">
+                      <strong className="text-naranja">Multinmuebles</strong> te garantiza 
+                      procesos seguros y transparentes en todas tus transacciones inmobiliarias.
+                    </p>
+                  </div>
+
+                </CardContent>
+              </Card>
             </div>
+
           </div>
         </div>
       </section>
-    </main>
+    </div>
   );
 }

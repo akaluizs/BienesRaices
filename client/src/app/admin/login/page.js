@@ -4,12 +4,28 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
-import { Mail, Lock, LogIn, AlertCircle, CheckCircle } from 'lucide-react';
+import { 
+  Mail, 
+  Lock, 
+  LogIn, 
+  AlertCircle, 
+  CheckCircle, 
+  Shield,
+  Eye,
+  EyeOff,
+  Loader2
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -59,95 +75,184 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="body-theme min-h-screen flex items-center justify-center py-12 px-4">
-      <div className="w-full max-w-md">
-        {/* HEADER */}
+    <div className="min-h-screen bg-gradient-to-br from-gris-claro via-blanco to-gris-claro flex items-center justify-center py-12 px-4 relative overflow-hidden">
+      
+      {/* Decoración de fondo */}
+      <div className="absolute top-0 left-0 w-full h-full opacity-5">
+        <div className="absolute top-20 left-10 w-64 h-64 bg-naranja rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-20 right-10 w-80 h-80 bg-amarillo-dorado rounded-full blur-3xl animate-pulse delay-1000" />
+      </div>
+
+      <div className="w-full max-w-md relative z-10">
+        
+        {/* LOGO Y TÍTULO */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-xela-navy mb-2">Panel Administrador</h1>
-          <p className="text-granito">Inicia sesión para gestionar propiedades</p>
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-cta rounded-2xl shadow-naranja mb-4">
+            <Shield className="w-10 h-10 text-blanco" />
+          </div>
+          
+          <h1 className="text-4xl font-extrabold text-gris-oscuro mb-2">
+            Panel <span className="text-naranja">Administrador</span>
+          </h1>
+          
+          <p className="text-gris-oscuro/70 text-lg">
+            Gestiona propiedades y contenido
+          </p>
         </div>
 
-        {/* FORMULARIO */}
-        <div className="bg-white rounded-2xl shadow-lg p-8">
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3">
-              <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0" />
-              <div>
-                <p className="font-bold text-red-900 text-sm">{error}</p>
-              </div>
-            </div>
-          )}
+        {/* CARD FORMULARIO */}
+        <Card className="border-2 border-gris-medio shadow-2xl">
+          <CardHeader className="space-y-1 pb-4">
+            <CardTitle className="text-2xl font-bold text-gris-oscuro text-center">
+              Iniciar Sesión
+            </CardTitle>
+            <CardDescription className="text-center text-gris-oscuro/70">
+              Ingresa tus credenciales de administrador
+            </CardDescription>
+          </CardHeader>
 
-          {success && (
-            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3">
-              <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
-              <div>
-                <p className="font-bold text-green-900 text-sm">{success}</p>
-              </div>
-            </div>
-          )}
+          <CardContent className="space-y-6">
+            
+            {/* ALERTAS */}
+            {error && (
+              <Alert className="bg-red-50 border-2 border-red-500">
+                <AlertCircle className="h-5 w-5 text-red-600" />
+                <AlertDescription className="text-red-800 font-semibold ml-2">
+                  {error}
+                </AlertDescription>
+              </Alert>
+            )}
 
-          <form onSubmit={handleLogin} className="space-y-6">
-            {/* EMAIL */}
-            <div>
-              <label className="block text-sm font-semibold text-xela-navy mb-2">
-                Correo Electrónico
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 w-5 h-5 text-granito" />
-                <input
+            {success && (
+              <Alert className="bg-green-50 border-2 border-green-500">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                <AlertDescription className="text-green-800 font-semibold ml-2">
+                  {success}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* FORMULARIO */}
+            <form onSubmit={handleLogin} className="space-y-5">
+              
+              {/* EMAIL */}
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-gris-oscuro font-semibold flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-naranja" />
+                  Correo Electrónico
+                </Label>
+                <Input
+                  id="email"
                   type="email"
+                  placeholder="admin@multinmuebles.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@bienesraices.com"
-                  className="w-full pl-10 pr-4 py-3 border border-niebla rounded-lg focus:outline-none focus:ring-2 focus:ring-cerro-verde focus:border-transparent transition"
                   required
+                  disabled={loading}
+                  className="border-2 border-gris-medio focus:border-naranja h-12 text-base"
                 />
+              </div>
+
+              {/* PASSWORD */}
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-gris-oscuro font-semibold flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-naranja" />
+                  Contraseña
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    disabled={loading}
+                    className="border-2 border-gris-medio focus:border-naranja h-12 text-base pr-12"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gris-oscuro/50 hover:text-naranja transition-colors"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* BOTÓN LOGIN */}
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full btn-cta h-12 text-base font-bold shadow-naranja mt-6"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Iniciando sesión...
+                  </>
+                ) : (
+                  <>
+                    <LogIn className="w-5 h-5 mr-2" />
+                    Iniciar Sesión
+                  </>
+                )}
+              </Button>
+            </form>
+
+            {/* SEPARADOR */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gris-medio"></div>
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-blanco px-2 text-gris-oscuro/50 font-semibold">
+                  Acceso restringido
+                </span>
               </div>
             </div>
 
-            {/* PASSWORD */}
-            <div>
-              <label className="block text-sm font-semibold text-xela-navy mb-2">
-                Contraseña
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 w-5 h-5 text-granito" />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full pl-10 pr-4 py-3 border border-niebla rounded-lg focus:outline-none focus:ring-2 focus:ring-cerro-verde focus:border-transparent transition"
-                  required
-                />
+            {/* INFO ADICIONAL */}
+            <div className="bg-naranja/5 border border-naranja/20 rounded-xl p-4">
+              <div className="flex items-start gap-3">
+                <Shield className="w-5 h-5 text-naranja flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-gris-oscuro mb-1">
+                    Panel de Administración
+                  </p>
+                  <p className="text-xs text-gris-oscuro/70 leading-relaxed">
+                    Solo usuarios autorizados pueden acceder. Tus credenciales son 
+                    privadas y protegidas.
+                  </p>
+                </div>
               </div>
             </div>
-
-            {/* BOTÓN LOGIN */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full group bg-cerro-verde hover:bg-xela-navy text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-            >
-              <LogIn className="w-5 h-5" />
-              <span>{loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}</span>
-            </button>
-
-            {/* LINK RECUPERAR */}
-            <div className="text-center">
-              <Link href="/forgot-password" className="text-sm text-cerro-verde hover:text-xela-navy transition">
-                ¿Olvidaste tu contraseña?
-              </Link>
-            </div>
-          </form>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* FOOTER */}
-        <p className="text-center text-granito text-sm mt-6">
-          ¿No tienes cuenta? Contacta al administrador principal
-        </p>
+        <div className="mt-6 text-center space-y-2">
+          
+          <p className="text-xs text-gris-oscuro/40">
+            © 2025 Multinmuebles. Todos los derechos reservados.
+          </p>
+        </div>
+
+        {/* BACK TO HOME */}
+        <div className="mt-8 text-center">
+          <Link 
+            href="/" 
+            className="inline-flex items-center gap-2 text-sm text-gris-oscuro/70 hover:text-naranja transition-colors font-semibold"
+          >
+            ← Volver al sitio principal
+          </Link>
+        </div>
       </div>
-    </main>
+    </div>
   );
 }

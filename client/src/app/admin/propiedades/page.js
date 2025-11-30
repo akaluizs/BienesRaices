@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import Image from 'next/image';
+import Link from 'next/link';
 import { 
   Plus, 
   Search, 
@@ -15,9 +17,13 @@ import {
   Bed,
   Bath,
   Maximize,
-  Building2
+  Building2,
+  AlertCircle
 } from 'lucide-react';
-import Link from 'next/link';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 export default function PropiedadesPage() {
@@ -76,211 +82,301 @@ export default function PropiedadesPage() {
     return matchesSearch;
   });
 
-  // Función para obtener el color del badge según el tipo
   const getTipoBadgeColor = (tipo) => {
     switch(tipo) {
       case 'Casa':
-        return 'bg-blue-500';
+        return 'bg-blue-500 hover:bg-blue-600';
       case 'Apartamento':
-        return 'bg-purple-500';
+        return 'bg-purple-500 hover:bg-purple-600';
       case 'Terreno':
-        return 'bg-green-500';
+        return 'bg-green-500 hover:bg-green-600';
+      case 'Local Comercial':
+        return 'bg-orange-500 hover:bg-orange-600';
       default:
-        return 'bg-gray-500';
+        return 'bg-gris-medio hover:bg-gris-oscuro';
     }
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-cerro-verde" />
+      <div className="flex flex-col items-center justify-center py-20">
+        <Loader2 className="w-16 h-16 animate-spin text-naranja mb-4" />
+        <p className="text-gris-oscuro text-lg font-semibold">Cargando propiedades...</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
+      
       {/* HEADER */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-xela-navy">Propiedades</h1>
-          <p className="text-granito mt-1">Gestiona todas las propiedades del sistema</p>
+          <h1 className="text-3xl md:text-4xl font-extrabold text-gris-oscuro flex items-center gap-3">
+            <Home className="w-9 h-9 text-naranja" />
+            Propiedades
+          </h1>
+          <p className="text-gris-oscuro/70 mt-2 text-lg">
+            Gestiona todas las propiedades del sistema
+          </p>
         </div>
+
         <Link href="/admin/propiedades/nueva">
-          <button className="flex items-center gap-2 bg-cerro-verde hover:bg-xela-navy text-white px-6 py-3 rounded-lg transition-colors shadow-md">
-            <Plus className="w-5 h-5" />
-            <span className="font-semibold">Nueva Propiedad</span>
-          </button>
+          <Button className="btn-cta px-6 py-6 rounded-xl font-bold text-base shadow-naranja group">
+            <Plus className="w-5 h-5 mr-2 group-hover:rotate-90 transition-transform" />
+            Nueva Propiedad
+          </Button>
         </Link>
       </div>
 
-      {/* SEARCH */}
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <div className="relative">
-          <Search className="absolute left-3 top-3 w-5 h-5 text-granito" />
-          <input
-            type="text"
-            placeholder="Buscar por título o ubicación..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border border-niebla rounded-lg focus:outline-none focus:ring-2 focus:ring-cerro-verde"
-          />
-        </div>
+      {/* STATS CARDS */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="border-2 border-gris-medio hover:border-naranja transition-all">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-gris-oscuro/70 mb-1">Total Propiedades</p>
+                <p className="text-3xl font-extrabold text-naranja">{propiedades.length}</p>
+              </div>
+              <div className="w-14 h-14 bg-gradient-cta rounded-2xl flex items-center justify-center shadow-naranja">
+                <Home className="w-7 h-7 text-blanco" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-2 border-gris-medio hover:border-blue-500 transition-all">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-gris-oscuro/70 mb-1">Casas</p>
+                <p className="text-3xl font-extrabold text-blue-500">
+                  {propiedades.filter(p => p.tipo === 'Casa').length}
+                </p>
+              </div>
+              <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center">
+                <Home className="w-7 h-7 text-blue-500" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-2 border-gris-medio hover:border-purple-500 transition-all">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-gris-oscuro/70 mb-1">Apartamentos</p>
+                <p className="text-3xl font-extrabold text-purple-500">
+                  {propiedades.filter(p => p.tipo === 'Apartamento').length}
+                </p>
+              </div>
+              <div className="w-14 h-14 bg-purple-100 rounded-2xl flex items-center justify-center">
+                <Building2 className="w-7 h-7 text-purple-500" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* STATS */}
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-granito font-medium">Total de Propiedades</p>
-            <p className="text-3xl font-bold text-xela-navy mt-1">
-              {propiedades.length}
+      {/* SEARCH */}
+      <Card className="border-2 border-gris-medio">
+        <CardContent className="p-6">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gris-oscuro/50" />
+            <Input
+              type="text"
+              placeholder="Buscar por título o ubicación..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-12 pr-4 py-6 text-base border-2 border-gris-medio focus:border-naranja rounded-xl"
+            />
+          </div>
+          
+          <div className="mt-4">
+            <p className="text-gris-oscuro font-semibold">
+              {filteredPropiedades.length} {filteredPropiedades.length === 1 ? 'propiedad encontrada' : 'propiedades encontradas'}
             </p>
           </div>
-          <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-            <Home className="w-6 h-6 text-blue-600" />
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      {/* PROPIEDADES LIST */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+      {/* GRID PROPIEDADES */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredPropiedades.map((propiedad) => (
-          <div key={propiedad.id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow">
-            {/* IMAGE */}
-            <div className="relative h-48 bg-slate-200">
+          <Card key={propiedad.id} className="border-2 border-gris-medio hover:border-naranja transition-all hover:shadow-xl group overflow-hidden">
+            
+            {/* Imagen */}
+            <div className="relative h-48 bg-gris-medio">
               {propiedad.imagenes && propiedad.imagenes.length > 0 ? (
-                <img 
+                <Image 
                   src={propiedad.imagenes[0]} 
                   alt={propiedad.titulo}
-                  className="w-full h-full object-cover"
+                  fill
+                  className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <Home className="w-16 h-16 text-slate-400" />
+                  <Home className="w-16 h-16 text-gris-oscuro/30" />
                 </div>
               )}
               
-              {/* TIPO BADGE */}
+              {/* Badge tipo */}
               {propiedad.tipo && (
-                <div className={cn(
-                  'absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-bold text-white',
+                <Badge className={cn(
+                  'absolute top-3 right-3 text-blanco font-bold border-0 shadow-lg',
                   getTipoBadgeColor(propiedad.tipo)
                 )}>
                   {propiedad.tipo}
-                </div>
+                </Badge>
               )}
             </div>
 
-            {/* CONTENT */}
-            <div className="p-5">
-              <div className="flex items-center gap-2 mb-2">
-                <h3 className="text-lg font-bold text-xela-navy line-clamp-1 flex-1">
-                  {propiedad.titulo}
-                </h3>
-              </div>
+            <CardContent className="p-5">
+              
+              {/* Título */}
+              <h3 className="text-lg font-bold text-gris-oscuro mb-3 line-clamp-1 group-hover:text-naranja transition-colors">
+                {propiedad.titulo}
+              </h3>
 
+              {/* Info */}
               <div className="space-y-2 mb-4">
-                <div className="flex items-center gap-2 text-sm text-granito">
-                  <MapPin className="w-4 h-4" />
+                <div className="flex items-center gap-2 text-sm text-gris-oscuro/70">
+                  <MapPin className="w-4 h-4 text-naranja" />
                   <span className="line-clamp-1">{propiedad.ubicacion}</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-granito">
-                  <DollarSign className="w-4 h-4" />
-                  <span className="font-bold text-cerro-verde text-lg">
+                
+                <div className="flex items-center gap-2">
+                  <DollarSign className="w-5 h-5 text-amarillo-dorado" />
+                  <span className="font-extrabold text-naranja text-xl">
                     Q{propiedad.precio?.toLocaleString()}
                   </span>
                 </div>
                 
-                {/* SPECS */}
-                <div className="flex items-center gap-4 text-xs text-granito pt-2">
-                  {propiedad.tipo !== 'Terreno' && (
-                    <>
-                      <div className="flex items-center gap-1">
-                        <Bed className="w-4 h-4" />
-                        <span>{propiedad.habitaciones || 0}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Bath className="w-4 h-4" />
-                        <span>{propiedad.banos || 0}</span>
-                      </div>
-                    </>
-                  )}
-                  <div className="flex items-center gap-1">
-                    <Maximize className="w-4 h-4" />
-                    <span>{propiedad.metros2 || 0}m²</span>
+                {/* Specs */}
+                {propiedad.tipo !== 'Terreno' && (
+                  <div className="flex items-center gap-4 text-sm text-gris-oscuro/70 pt-2 border-t border-gris-medio">
+                    <div className="flex items-center gap-1">
+                      <Bed className="w-4 h-4 text-naranja" />
+                      <span className="font-semibold">{propiedad.habitaciones || 0}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Bath className="w-4 h-4 text-naranja" />
+                      <span className="font-semibold">{propiedad.banos || 0}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Maximize className="w-4 h-4 text-naranja" />
+                      <span className="font-semibold">{propiedad.metros2 || 0}m²</span>
+                    </div>
                   </div>
-                </div>
+                )}
+                
+                {propiedad.tipo === 'Terreno' && (
+                  <div className="flex items-center gap-2 text-sm text-gris-oscuro/70 pt-2 border-t border-gris-medio">
+                    <Maximize className="w-4 h-4 text-naranja" />
+                    <span className="font-semibold">{propiedad.metros2 || 0}m²</span>
+                  </div>
+                )}
               </div>
 
-              {/* ACTIONS */}
-              <div className="flex gap-2">
-                <Link href={`/propiedades/${propiedad.id}`} className="flex-1">
-                  <button className="w-full flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-granito px-3 py-2 rounded-lg transition-colors">
+              {/* Acciones */}
+              <div className="grid grid-cols-3 gap-2">
+                <Link href={`/propiedades/${propiedad.id}`}>
+                  <Button 
+                    variant="outline"
+                    className="w-full border-2 border-gris-medio hover:border-blue-500 hover:bg-blue-50 text-blue-600 rounded-xl"
+                    size="sm"
+                  >
                     <Eye className="w-4 h-4" />
-                    <span className="text-sm font-medium">Ver</span>
-                  </button>
+                  </Button>
                 </Link>
                 
-                <Link href={`/admin/propiedades/editar/${propiedad.id}`} className="flex-1">
-                  <button className="w-full flex items-center justify-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-2 rounded-lg transition-colors">
+                <Link href={`/admin/propiedades/editar/${propiedad.id}`}>
+                  <Button 
+                    variant="outline"
+                    className="w-full border-2 border-gris-medio hover:border-naranja hover:bg-naranja/10 text-naranja rounded-xl"
+                    size="sm"
+                  >
                     <Edit className="w-4 h-4" />
-                    <span className="text-sm font-medium">Editar</span>
-                  </button>
+                  </Button>
                 </Link>
 
-                <button
+                <Button
+                  variant="outline"
                   onClick={() => setDeleteModal(propiedad)}
-                  className="flex items-center justify-center bg-red-50 hover:bg-red-100 text-red-600 px-3 py-2 rounded-lg transition-colors"
+                  className="w-full border-2 border-gris-medio hover:border-red-500 hover:bg-red-50 text-red-600 rounded-xl"
+                  size="sm"
                 >
                   <Trash2 className="w-4 h-4" />
-                </button>
+                </Button>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         ))}
       </div>
 
+      {/* EMPTY STATE */}
       {filteredPropiedades.length === 0 && (
-        <div className="text-center py-12">
-          <Home className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-          <p className="text-xl text-granito">No se encontraron propiedades</p>
-        </div>
+        <Card className="border-2 border-gris-medio">
+          <CardContent className="py-20 text-center">
+            <div className="w-20 h-20 bg-gris-claro rounded-full flex items-center justify-center mx-auto mb-6">
+              <Home className="w-10 h-10 text-gris-oscuro/50" />
+            </div>
+            <h3 className="text-2xl font-bold text-gris-oscuro mb-3">
+              No se encontraron propiedades
+            </h3>
+            <p className="text-gris-oscuro/70 mb-6">
+              {searchTerm 
+                ? 'Intenta ajustar la búsqueda' 
+                : 'Comienza agregando tu primera propiedad'}
+            </p>
+            <Link href="/admin/propiedades/nueva">
+              <Button className="btn-cta px-8 py-3 rounded-xl font-bold shadow-naranja">
+                <Plus className="w-5 h-5 mr-2" />
+                Nueva Propiedad
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
       )}
 
       {/* DELETE MODAL */}
       {deleteModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                <Trash2 className="w-6 h-6 text-red-600" />
+        <div className="fixed inset-0 bg-gris-oscuro/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <Card className="max-w-md w-full border-2 border-gris-medio shadow-2xl">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                  <AlertCircle className="w-6 h-6 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gris-oscuro">Eliminar Propiedad</h3>
+                  <p className="text-sm text-gris-oscuro/70">Esta acción no se puede deshacer</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-xl font-bold text-xela-navy">Eliminar Propiedad</h3>
-                <p className="text-sm text-granito">Esta acción no se puede deshacer</p>
-              </div>
-            </div>
-            
-            <p className="text-granito mb-6">
-              ¿Estás seguro de que deseas eliminar <span className="font-bold">{deleteModal.titulo}</span>?
-            </p>
+              
+              <p className="text-gris-oscuro mb-6">
+                ¿Estás seguro de que deseas eliminar{' '}
+                <span className="font-bold text-naranja">{deleteModal.titulo}</span>?
+              </p>
 
-            <div className="flex gap-3">
-              <button
-                onClick={() => setDeleteModal(null)}
-                className="flex-1 px-4 py-3 border border-niebla rounded-lg font-medium text-granito hover:bg-slate-50 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => handleDelete(deleteModal.id)}
-                className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
-              >
-                Eliminar
-              </button>
-            </div>
-          </div>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setDeleteModal(null)}
+                  className="flex-1 border-2 border-gris-medio hover:bg-gris-claro rounded-xl font-bold"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={() => handleDelete(deleteModal.id)}
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-blanco rounded-xl font-bold shadow-lg"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Eliminar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

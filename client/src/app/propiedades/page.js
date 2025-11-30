@@ -1,24 +1,38 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import PropertyCard from '@/components/PropertyCard';
-import { Loader2, Home, Search } from 'lucide-react';
+import { Search, Filter, Home, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function PropiedadesPage() {
   const [properties, setProperties] = useState([]);
+  const [filteredProperties, setFilteredProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterTipo, setFilterTipo] = useState('all');
-  const router = useRouter();
+  const [selectedType, setSelectedType] = useState('todos');
 
   useEffect(() => {
     loadProperties();
   }, []);
 
+  useEffect(() => {
+    filterProperties();
+  }, [properties, searchTerm, selectedType]);
+
   const loadProperties = async () => {
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from('propiedades')
         .select('*')
@@ -26,7 +40,6 @@ export default function PropiedadesPage() {
 
       if (error) throw error;
 
-      // Transformar los datos al formato que espera PropertyCard
       const formattedProperties = data.map(prop => ({
         id: prop.id,
         title: prop.titulo,
@@ -37,11 +50,12 @@ export default function PropiedadesPage() {
         area: prop.metros2,
         bedrooms: prop.habitaciones,
         bathrooms: prop.banos,
-        parking: null, // Si no tienes este campo
+        parking: null,
         type: prop.tipo,
       }));
 
       setProperties(formattedProperties);
+      setFilteredProperties(formattedProperties);
     } catch (error) {
       console.error('Error cargando propiedades:', error);
     } finally {
@@ -49,131 +63,187 @@ export default function PropiedadesPage() {
     }
   };
 
-  const filteredProperties = properties.filter(prop => {
-    const matchesSearch = prop.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         prop.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         prop.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesTipo = filterTipo === 'all' || prop.type === filterTipo;
-    return matchesSearch && matchesTipo;
-  });
+  const filterProperties = () => {
+    let filtered = [...properties];
 
-  const handlePropertyClick = (id) => {
-    if (document.startViewTransition) {
-      document.startViewTransition(() => {
-        router.push(`/propiedades/${id}`);
-      });
-    } else {
-      router.push(`/propiedades/${id}`);
+    // Filtro por búsqueda
+    if (searchTerm) {
+      filtered = filtered.filter(prop =>
+        prop.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        prop.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        prop.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
     }
+
+    // Filtro por tipo
+    if (selectedType !== 'todos') {
+      filtered = filtered.filter(prop => prop.type === selectedType);
+    }
+
+    setFilteredProperties(filtered);
   };
 
-  if (loading) {
-    return (
-      <main className="body-theme min-h-screen py-16">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-center h-64">
-            <Loader2 className="w-8 h-8 animate-spin text-cerro-verde" />
-          </div>
-        </div>
-      </main>
-    );
-  }
+  const clearFilters = () => {
+    setSearchTerm('');
+    setSelectedType('todos');
+  };
+
+  // Obtener tipos únicos
+  const propertyTypes = ['todos', ...new Set(properties.map(p => p.type).filter(Boolean))];
 
   return (
-    <main className="body-theme min-h-screen py-16" style={{ viewTransitionName: 'main-content' }}>
-      <div className="container mx-auto px-4">
-        <h1 className="text-4xl md:text-5xl font-bold text-xela-navy mb-4 text-center">
-          Nuestras Propiedades
-        </h1>
-        <p className="text-granito text-center mb-8 max-w-2xl mx-auto text-lg">
-          Encuentra la propiedad ideal para ti. Contamos con una amplia variedad de opciones en Quetzaltenango.
-        </p>
+    <div className="min-h-screen bg-gris-claro">
+      
+      {/* HERO SECTION */}
+      <section className="bg-gradient-primary text-blanco py-16">
+        <div className="container mx-auto px-4">
+          <div className="max-w-3xl mx-auto text-center">
+            <div className="inline-flex items-center gap-2 bg-blanco/10 backdrop-blur-md border border-amarillo-dorado/30 rounded-full px-6 py-2 mb-6">
+              <Home className="w-5 h-5 text-amarillo-dorado" />
+              <span className="text-blanco font-semibold text-sm">
+                Catálogo Completo
+              </span>
+            </div>
 
-        {/* FILTROS */}
-        <div className="max-w-4xl mx-auto mb-12 space-y-4">
-          {/* SEARCH */}
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-granito" />
-            <input
-              type="text"
-              placeholder="Buscar por título, ubicación o descripción..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-4 border border-niebla rounded-xl focus:outline-none focus:ring-2 focus:ring-cerro-verde shadow-sm"
-            />
-          </div>
+            <h1 className="text-4xl md:text-6xl font-extrabold mb-6">
+              Encuentra tu{' '}
+              <span className="text-amarillo-dorado">Propiedad Ideal</span>
+            </h1>
+            
+            <p className="text-xl text-blanco/90 mb-8">
+              Explora nuestra colección completa de propiedades en Quetzaltenango.
+              Casas, apartamentos y terrenos con las mejores ubicaciones.
+            </p>
 
-          {/* TIPO FILTER */}
-          <div className="flex flex-wrap gap-3 justify-center">
-            <button
-              onClick={() => setFilterTipo('all')}
-              className={`px-6 py-3 rounded-xl font-medium transition-all ${
-                filterTipo === 'all'
-                  ? 'bg-cerro-verde text-white shadow-md'
-                  : 'bg-white text-granito hover:bg-slate-50 border border-niebla'
-              }`}
-            >
-              Todas
-            </button>
-            <button
-              onClick={() => setFilterTipo('Casa')}
-              className={`px-6 py-3 rounded-xl font-medium transition-all ${
-                filterTipo === 'Casa'
-                  ? 'bg-blue-500 text-white shadow-md'
-                  : 'bg-white text-granito hover:bg-slate-50 border border-niebla'
-              }`}
-            >
-              Casas
-            </button>
-            <button
-              onClick={() => setFilterTipo('Apartamento')}
-              className={`px-6 py-3 rounded-xl font-medium transition-all ${
-                filterTipo === 'Apartamento'
-                  ? 'bg-purple-500 text-white shadow-md'
-                  : 'bg-white text-granito hover:bg-slate-50 border border-niebla'
-              }`}
-            >
-              Apartamentos
-            </button>
-            <button
-              onClick={() => setFilterTipo('Terreno')}
-              className={`px-6 py-3 rounded-xl font-medium transition-all ${
-                filterTipo === 'Terreno'
-                  ? 'bg-green-500 text-white shadow-md'
-                  : 'bg-white text-granito hover:bg-slate-50 border border-niebla'
-              }`}
-            >
-              Terrenos
-            </button>
+            {/* ESTADÍSTICAS RÁPIDAS */}
+            <div className="grid grid-cols-3 gap-6 max-w-2xl mx-auto">
+              <div className="bg-blanco/10 backdrop-blur-lg rounded-xl p-4 border border-blanco/20">
+                <p className="text-3xl font-bold text-amarillo-dorado">{properties.length}</p>
+                <p className="text-sm text-blanco/80">Propiedades</p>
+              </div>
+              <div className="bg-blanco/10 backdrop-blur-lg rounded-xl p-4 border border-blanco/20">
+                <p className="text-3xl font-bold text-amarillo-dorado">{propertyTypes.length - 1}</p>
+                <p className="text-sm text-blanco/80">Tipos</p>
+              </div>
+              <div className="bg-blanco/10 backdrop-blur-lg rounded-xl p-4 border border-blanco/20">
+                <p className="text-3xl font-bold text-amarillo-dorado">{filteredProperties.length}</p>
+                <p className="text-sm text-blanco/80">Resultados</p>
+              </div>
+            </div>
           </div>
         </div>
+      </section>
 
-        {/* PROPIEDADES GRID */}
-        {filteredProperties.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredProperties.map((property) => (
-              <div
-                key={property.id}
-                onClick={() => handlePropertyClick(property.id)}
-                style={{ viewTransitionName: `property-${property.id}` }}
-                className="cursor-pointer"
+      {/* FILTROS Y BÚSQUEDA - Sin sticky */}
+      <section className="py-8 bg-blanco shadow-md">
+        <div className="container mx-auto px-4">
+          
+          {/* Barra de búsqueda y filtro */}
+          <div className="flex flex-col lg:flex-row gap-4 mb-6">
+            
+            {/* Input de búsqueda */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gris-oscuro/50" />
+              <Input
+                type="text"
+                placeholder="Buscar por título, ubicación o descripción..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-12 pr-4 py-6 text-base border-2 border-gris-medio focus:border-naranja rounded-xl"
+              />
+            </div>
+
+            {/* Filtro por tipo */}
+            <Select value={selectedType} onValueChange={setSelectedType}>
+              <SelectTrigger className="w-full lg:w-64 py-6 border-2 border-gris-medio focus:border-naranja rounded-xl">
+                <Home className="w-5 h-5 text-naranja mr-2" />
+                <SelectValue placeholder="Tipo de Propiedad" />
+              </SelectTrigger>
+              <SelectContent side="top" align="end" className="max-h-[300px]">
+                {propertyTypes.map(type => (
+                  <SelectItem key={type} value={type}>
+                    {type === 'todos' ? 'Todos los Tipos' : type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Botón limpiar filtros */}
+            {(searchTerm || selectedType !== 'todos') && (
+              <Button
+                onClick={clearFilters}
+                variant="outline"
+                className="border-2 border-naranja text-naranja hover:bg-naranja hover:text-blanco py-6 rounded-xl font-bold transition-all"
               >
-                <PropertyCard property={property} />
-              </div>
-            ))}
+                <Filter className="w-5 h-5 mr-2" />
+                Limpiar
+              </Button>
+            )}
           </div>
-        ) : (
-          <div className="text-center py-16">
-            <Home className="w-20 h-20 text-slate-300 mx-auto mb-4" />
-            <h3 className="text-2xl font-bold text-xela-navy mb-2">
-              No se encontraron propiedades
-            </h3>
-            <p className="text-granito">
-              Intenta con otros filtros o términos de búsqueda
+
+          {/* Contador de resultados */}
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <p className="text-gris-oscuro font-semibold">
+              {filteredProperties.length} {filteredProperties.length === 1 ? 'propiedad encontrada' : 'propiedades encontradas'}
             </p>
+            
+            {(searchTerm || selectedType !== 'todos') && (
+              <div className="flex items-center gap-2 text-sm text-gris-oscuro/70">
+                <span className="font-medium">Filtros activos:</span>
+                {searchTerm && (
+                  <span className="bg-naranja/10 text-naranja px-3 py-1 rounded-full text-xs font-semibold">
+                    Búsqueda: "{searchTerm}"
+                  </span>
+                )}
+                {selectedType !== 'todos' && (
+                  <span className="bg-naranja/10 text-naranja px-3 py-1 rounded-full text-xs font-semibold">
+                    {selectedType}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
-        )}
-      </div>
-    </main>
+        </div>
+      </section>
+
+      {/* LISTADO DE PROPIEDADES */}
+      <section className="py-12">
+        <div className="container mx-auto px-4">
+          
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <Loader2 className="w-16 h-16 animate-spin text-naranja mb-4" />
+              <p className="text-gris-oscuro text-lg font-semibold">Cargando propiedades...</p>
+            </div>
+          ) : filteredProperties.length === 0 ? (
+            <Card className="max-w-2xl mx-auto">
+              <CardContent className="p-12 text-center">
+                <div className="w-20 h-20 bg-gris-claro rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Search className="w-10 h-10 text-gris-oscuro/50" />
+                </div>
+                <h3 className="text-2xl font-bold text-gris-oscuro mb-4">
+                  No se encontraron propiedades
+                </h3>
+                <p className="text-gris-oscuro/70 mb-6">
+                  Intenta ajustar los filtros o realiza una nueva búsqueda
+                </p>
+                <Button
+                  onClick={clearFilters}
+                  className="btn-cta px-8 py-3 rounded-xl font-bold shadow-naranja"
+                >
+                  Limpiar Filtros
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {filteredProperties.map((property) => (
+                <PropertyCard key={property.id} property={property} />
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
   );
 }
