@@ -7,7 +7,11 @@ import {
   Calendar, 
   Clock, 
   Loader2,
-  Sparkles
+  Sparkles,
+  Video,
+  Youtube,
+  HardDrive,
+  Play
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -40,6 +44,48 @@ export default function AnunciosPage() {
     }
   };
 
+  // Extraer ID de YouTube
+  const extractYouTubeId = (url) => {
+    if (!url) return null;
+    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    const match = url.match(regex);
+    return match ? match[1] : null;
+  };
+
+  // Extraer ID de Google Drive
+  const extractDriveId = (url) => {
+    if (!url) return null;
+    const regex = /(?:drive\.google\.com\/file\/d\/|drive\.google\.com\/open\?id=)([a-zA-Z0-9_-]+)/;
+    const match = url.match(regex);
+    return match ? match[1] : null;
+  };
+
+  // Detectar tipo de video
+  const detectVideoType = (url) => {
+    if (!url) return null;
+    if (extractYouTubeId(url)) return 'youtube';
+    if (extractDriveId(url)) return 'drive';
+    return null;
+  };
+
+  // Obtener embed URL según el tipo
+  const getEmbedUrl = (url) => {
+    if (!url) return null;
+    const videoType = detectVideoType(url);
+    
+    if (videoType === 'youtube') {
+      const videoId = extractYouTubeId(url);
+      return `https://www.youtube.com/embed/${videoId}`;
+    }
+    
+    if (videoType === 'drive') {
+      const fileId = extractDriveId(url);
+      return `https://drive.google.com/file/d/${fileId}/preview`;
+    }
+    
+    return null;
+  };
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('es-GT', { 
@@ -51,6 +97,64 @@ export default function AnunciosPage() {
 
   const featuredAnuncio = anuncios[0];
   const regularAnuncios = anuncios.slice(1);
+
+  // Componente para renderizar media (imagen o video)
+  const MediaContent = ({ anuncio, isFeatured = false }) => {
+    const hasVideo = !!anuncio.video_url;
+    const hasImage = !!anuncio.imagen;
+    const videoType = detectVideoType(anuncio.video_url);
+    const embedUrl = getEmbedUrl(anuncio.video_url);
+
+    if (hasVideo && embedUrl) {
+      return (
+        <div className="relative w-full bg-gris-oscuro">
+          <div className={`${isFeatured ? 'aspect-video' : 'aspect-video'}`}>
+            <iframe
+              className="w-full h-full"
+              src={embedUrl}
+              title={anuncio.titulo}
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+          
+          {/* Badge tipo de video */}
+          <Badge className="absolute bottom-4 right-4 bg-gris-oscuro/90 backdrop-blur-sm text-blanco font-bold px-3 py-1 shadow-lg">
+            {videoType === 'youtube' ? (
+              <>
+                <Youtube className="w-3 h-3 mr-1" />
+                YouTube
+              </>
+            ) : (
+              <>
+                <HardDrive className="w-3 h-3 mr-1" />
+                Drive
+              </>
+            )}
+          </Badge>
+        </div>
+      );
+    }
+
+    if (hasImage) {
+      return (
+        <div className="relative w-full bg-gris-medio">
+          <img
+            src={anuncio.imagen}
+            alt={anuncio.titulo}
+            className="w-full h-auto object-contain"
+          />
+        </div>
+      );
+    }
+
+    return (
+      <div className={`w-full ${isFeatured ? 'h-96' : 'h-64'} flex items-center justify-center bg-gris-medio`}>
+        <Newspaper className={`${isFeatured ? 'w-24 h-24' : 'w-16 h-16'} text-gris-oscuro/30`} />
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gris-claro">
@@ -80,6 +184,25 @@ export default function AnunciosPage() {
               Conoce los últimos avances de nuestros proyectos inmobiliarios 
               y las nuevas oportunidades en Quetzaltenango.
             </p>
+
+            {/* Stats */}
+            {!loading && anuncios.length > 0 && (
+              <div className="flex flex-wrap items-center justify-center gap-6 mt-8">
+                <div className="flex items-center gap-2 bg-blanco/10 backdrop-blur-md rounded-full px-5 py-2 border border-blanco/20">
+                  <Newspaper className="w-5 h-5 text-amarillo-dorado" />
+                  <span className="font-bold">{anuncios.length}</span>
+                  <span className="text-blanco/80">Anuncios</span>
+                </div>
+                
+                {anuncios.filter(a => a.video_url).length > 0 && (
+                  <div className="flex items-center gap-2 bg-blanco/10 backdrop-blur-md rounded-full px-5 py-2 border border-blanco/20">
+                    <Video className="w-5 h-5 text-amarillo-dorado" />
+                    <span className="font-bold">{anuncios.filter(a => a.video_url).length}</span>
+                    <span className="text-blanco/80">Videos</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -103,7 +226,7 @@ export default function AnunciosPage() {
                   No hay anuncios disponibles
                 </h3>
                 <p className="text-gris-oscuro/70">
-                  Aún no hay anuncios publicados
+                  Aún no hay anuncios publicados. Vuelve pronto para conocer nuestras novedades.
                 </p>
               </CardContent>
             </Card>
@@ -122,37 +245,38 @@ export default function AnunciosPage() {
                     </Badge>
                   </div>
 
-                  {/* Imagen con aspect ratio automático */}
-                  <div className="relative w-full bg-gris-medio">
-                    {featuredAnuncio.imagen ? (
-                      <img
-                        src={featuredAnuncio.imagen}
-                        alt={featuredAnuncio.titulo}
-                        className="w-full h-auto object-contain"
-                      />
-                    ) : (
-                      <div className="w-full h-96 flex items-center justify-center">
-                        <Newspaper className="w-24 h-24 text-gris-oscuro/30" />
-                      </div>
-                    )}
-                  </div>
+                  {/* Media Content */}
+                  <MediaContent anuncio={featuredAnuncio} isFeatured={true} />
 
                   {/* Contenido */}
                   <div className="p-8 lg:p-12">
-                    <div className="flex items-center gap-3 mb-6">
+                    <div className="flex flex-wrap items-center gap-3 mb-6">
                       <Badge className="bg-naranja/10 text-naranja border border-naranja/30 px-4 py-2 font-bold">
                         Destacado
                       </Badge>
                       
                       <div className="flex items-center gap-2 text-gris-oscuro/60">
-                        <Calendar className="w-4 h-4" />
+                        <Calendar className="w-4 h-4 text-naranja" />
                         <span className="text-sm font-medium">
                           {formatDate(featuredAnuncio.created_at)}
                         </span>
                       </div>
+
+                      {/* Badge tipo de contenido */}
+                      {featuredAnuncio.video_url ? (
+                        <Badge className="bg-purple-100 text-purple-700 border border-purple-300 px-3 py-1 font-bold">
+                          <Play className="w-3 h-3 mr-1" />
+                          Video
+                        </Badge>
+                      ) : featuredAnuncio.imagen && (
+                        <Badge className="bg-blue-100 text-blue-700 border border-blue-300 px-3 py-1 font-bold">
+                          <Newspaper className="w-3 h-3 mr-1" />
+                          Imagen
+                        </Badge>
+                      )}
                     </div>
 
-                    <h2 className="text-3xl md:text-4xl font-extrabold text-gris-oscuro mb-6">
+                    <h2 className="text-3xl md:text-4xl font-extrabold text-gris-oscuro mb-6 leading-tight">
                       {featuredAnuncio.titulo}
                     </h2>
 
@@ -167,53 +291,67 @@ export default function AnunciosPage() {
 
               {/* GRID DE ANUNCIOS REGULARES */}
               {regularAnuncios.length > 0 && (
-                <div className="grid grid-cols-1 gap-8">
-                  {regularAnuncios.map((anuncio, index) => (
-                    <Card 
-                      key={anuncio.id}
-                      className="border-2 border-gris-medio hover:border-naranja transition-all hover:shadow-xl overflow-hidden"
-                    >
-                      {/* Imagen con aspect ratio automático */}
-                      <div className="relative w-full bg-gris-medio">
-                        {anuncio.imagen ? (
-                          <img
-                            src={anuncio.imagen}
-                            alt={anuncio.titulo}
-                            className="w-full h-auto object-contain"
-                          />
-                        ) : (
-                          <div className="w-full h-64 flex items-center justify-center">
-                            <Newspaper className="w-16 h-16 text-gris-oscuro/30" />
-                          </div>
-                        )}
-                        
-                        {/* Número de orden */}
-                        <Badge className="absolute top-4 left-4 bg-gris-oscuro/80 text-blanco font-bold px-3 py-1">
-                          #{index + 2}
-                        </Badge>
-                      </div>
+                <div>
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="h-1 w-12 bg-gradient-cta rounded-full"></div>
+                    <h2 className="text-2xl font-bold text-gris-oscuro">
+                      Más Anuncios
+                    </h2>
+                  </div>
 
-                      <CardContent className="p-6">
-                        {/* Fecha */}
-                        <div className="flex items-center gap-2 text-gris-oscuro/60 text-sm mb-4">
-                          <Clock className="w-4 h-4 text-naranja" />
-                          <span>{formatDate(anuncio.created_at)}</span>
+                  <div className="grid grid-cols-1 gap-8">
+                    {regularAnuncios.map((anuncio, index) => (
+                      <Card 
+                        key={anuncio.id}
+                        className="border-2 border-gris-medio hover:border-naranja transition-all hover:shadow-xl overflow-hidden group"
+                      >
+                        {/* Media Content */}
+                        <MediaContent anuncio={anuncio} />
+                        
+                        {/* Número de orden flotante */}
+                        <div className="absolute top-4 left-4 z-10">
+                          <Badge className="bg-gris-oscuro/90 backdrop-blur-sm text-blanco font-bold px-3 py-1.5 shadow-lg">
+                            #{index + 2}
+                          </Badge>
                         </div>
 
-                        {/* Título */}
-                        <h3 className="text-2xl font-bold text-gris-oscuro mb-4">
-                          {anuncio.titulo}
-                        </h3>
+                        <CardContent className="p-6 lg:p-8">
+                          {/* Fecha y tipo */}
+                          <div className="flex flex-wrap items-center gap-3 mb-4">
+                            <div className="flex items-center gap-2 text-gris-oscuro/60 text-sm">
+                              <Clock className="w-4 h-4 text-naranja" />
+                              <span className="font-medium">{formatDate(anuncio.created_at)}</span>
+                            </div>
 
-                        {/* Descripción completa */}
-                        {anuncio.descripcion && (
-                          <p className="text-gris-oscuro/80 leading-relaxed whitespace-pre-wrap">
-                            {anuncio.descripcion}
-                          </p>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
+                            {/* Badge tipo de contenido */}
+                            {anuncio.video_url ? (
+                              <Badge className="bg-purple-100 text-purple-700 border border-purple-300 px-3 py-1 font-bold">
+                                <Play className="w-3 h-3 mr-1" />
+                                Video
+                              </Badge>
+                            ) : anuncio.imagen && (
+                              <Badge className="bg-blue-100 text-blue-700 border border-blue-300 px-3 py-1 font-bold">
+                                <Newspaper className="w-3 h-3 mr-1" />
+                                Imagen
+                              </Badge>
+                            )}
+                          </div>
+
+                          {/* Título */}
+                          <h3 className="text-2xl font-bold text-gris-oscuro mb-4 group-hover:text-naranja transition-colors leading-tight">
+                            {anuncio.titulo}
+                          </h3>
+
+                          {/* Descripción completa */}
+                          {anuncio.descripcion && (
+                            <p className="text-gris-oscuro/80 leading-relaxed whitespace-pre-wrap">
+                              {anuncio.descripcion}
+                            </p>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

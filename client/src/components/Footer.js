@@ -67,6 +67,15 @@ export default function Footer() {
               </li>
               <li>
                 <Link 
+                  href="/anuncios" 
+                  className="footer-link flex items-center gap-2 text-sm group"
+                >
+                  <span className="text-naranja group-hover:translate-x-1 transition-transform">→</span>
+                  Anuncios
+                </Link>
+              </li>
+              <li>
+                <Link 
                   href="/nosotros" 
                   className="footer-link flex items-center gap-2 text-sm group"
                 >

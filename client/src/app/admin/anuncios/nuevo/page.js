@@ -12,7 +12,11 @@ import {
   FileText,
   Image as ImageIcon,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Video,
+  Link as LinkIcon,
+  Youtube,
+  HardDrive
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -23,16 +27,19 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function NuevoAnuncioPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
   const [alert, setAlert] = useState(null);
+  const [mediaType, setMediaType] = useState('imagen'); // 'imagen' o 'video'
   const [formData, setFormData] = useState({
     titulo: '',
     descripcion: '',
     imagen: null,
+    video_url: '',
     activo: true
   });
 
@@ -47,6 +54,17 @@ export default function NuevoAnuncioPage() {
       ...prev,
       [name]: value
     }));
+  };
+
+  const handleMediaTypeChange = (type) => {
+    setMediaType(type);
+    // Limpiar el otro tipo de media
+    if (type === 'imagen') {
+      setFormData(prev => ({ ...prev, video_url: '' }));
+    } else {
+      setFormData(prev => ({ ...prev, imagen: null }));
+      setImagePreview(null);
+    }
   };
 
   const handleImageChange = (e) => {
@@ -73,7 +91,8 @@ export default function NuevoAnuncioPage() {
       setImagePreview(reader.result);
       setFormData(prev => ({
         ...prev,
-        imagen: reader.result
+        imagen: reader.result,
+        video_url: '' // Limpiar video si hay imagen
       }));
       showAlert('success', 'Imagen cargada correctamente');
     };
@@ -92,6 +111,47 @@ export default function NuevoAnuncioPage() {
     showAlert('success', 'Imagen eliminada');
   };
 
+  // Extraer ID de YouTube
+  const extractYouTubeId = (url) => {
+    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    const match = url.match(regex);
+    return match ? match[1] : null;
+  };
+
+  // Extraer ID de Google Drive
+  const extractDriveId = (url) => {
+    // Formatos soportados:
+    // https://drive.google.com/file/d/FILE_ID/view
+    // https://drive.google.com/open?id=FILE_ID
+    const regex = /(?:drive\.google\.com\/file\/d\/|drive\.google\.com\/open\?id=)([a-zA-Z0-9_-]+)/;
+    const match = url.match(regex);
+    return match ? match[1] : null;
+  };
+
+  // Detectar tipo de video
+  const detectVideoType = (url) => {
+    if (extractYouTubeId(url)) return 'youtube';
+    if (extractDriveId(url)) return 'drive';
+    return null;
+  };
+
+  // Obtener embed URL según el tipo
+  const getEmbedUrl = (url) => {
+    const videoType = detectVideoType(url);
+    
+    if (videoType === 'youtube') {
+      const videoId = extractYouTubeId(url);
+      return `https://www.youtube.com/embed/${videoId}`;
+    }
+    
+    if (videoType === 'drive') {
+      const fileId = extractDriveId(url);
+      return `https://drive.google.com/file/d/${fileId}/preview`;
+    }
+    
+    return null;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -101,9 +161,22 @@ export default function NuevoAnuncioPage() {
       return;
     }
 
-    if (!formData.imagen) {
+    if (mediaType === 'imagen' && !formData.imagen) {
       showAlert('error', 'Imagen requerida', 'Por favor sube una imagen del proyecto');
       return;
+    }
+
+    if (mediaType === 'video' && !formData.video_url.trim()) {
+      showAlert('error', 'URL de video requerida', 'Por favor ingresa el enlace del video');
+      return;
+    }
+
+    if (mediaType === 'video') {
+      const videoType = detectVideoType(formData.video_url);
+      if (!videoType) {
+        showAlert('error', 'URL inválida', 'Por favor ingresa un enlace válido de YouTube o Google Drive');
+        return;
+      }
     }
 
     setLoading(true);
@@ -125,7 +198,8 @@ export default function NuevoAnuncioPage() {
         .insert([{
           titulo: formData.titulo.trim(),
           descripcion: formData.descripcion.trim() || null,
-          imagen: formData.imagen,
+          imagen: mediaType === 'imagen' ? formData.imagen : null,
+          video_url: mediaType === 'video' ? formData.video_url.trim() : null,
           activo: formData.activo,
           orden: nuevoOrden
         }])
@@ -145,6 +219,9 @@ export default function NuevoAnuncioPage() {
       setLoading(false);
     }
   };
+
+  const embedUrl = formData.video_url ? getEmbedUrl(formData.video_url) : null;
+  const videoType = formData.video_url ? detectVideoType(formData.video_url) : null;
 
   return (
     <div className="space-y-6">
@@ -195,72 +272,181 @@ export default function NuevoAnuncioPage() {
       {/* FORM */}
       <form onSubmit={handleSubmit} className="space-y-6">
         
-        {/* IMAGEN */}
+        {/* MEDIA (IMAGEN O VIDEO) */}
         <Card className="border-2 border-gris-medio">
           <CardHeader>
             <CardTitle className="text-xl font-bold text-gris-oscuro flex items-center gap-3">
               <ImageIcon className="w-6 h-6 text-naranja" />
-              Imagen del Proyecto
+              Contenido del Anuncio
               <Badge className="bg-rojo-naranja/10 text-rojo-naranja border border-rojo-naranja/30 ml-2">
-                Requerida
+                Requerido
               </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             
-            {/* PREVIEW */}
-            {imagePreview ? (
-              <div className="relative group">
-                <div className="relative w-full h-96 rounded-xl overflow-hidden border-2 border-gris-medio group-hover:border-naranja transition-all">
-                  <Image 
-                    src={imagePreview} 
-                    alt="Preview"
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={removeImage}
-                  className="absolute top-4 right-4 p-2 bg-red-600 hover:bg-red-700 text-blanco rounded-full transition-all shadow-lg opacity-0 group-hover:opacity-100"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-                <Badge className="absolute bottom-4 left-4 bg-gradient-cta text-blanco font-bold shadow-naranja text-sm py-2 px-4">
-                  Imagen Principal
-                </Badge>
-              </div>
-            ) : (
-              <label className="flex flex-col items-center justify-center w-full h-96 border-2 border-dashed border-gris-medio rounded-xl cursor-pointer hover:border-naranja hover:bg-naranja/5 transition-all group">
-                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <div className="w-20 h-20 bg-naranja/10 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-naranja/20 transition-all">
-                    <Upload className="w-10 h-10 text-naranja" />
-                  </div>
-                  <p className="mb-3 text-lg text-gris-oscuro font-bold">
-                    Click para subir o arrastra y suelta
-                  </p>
-                  <p className="text-sm text-gris-oscuro/70 mb-2">
-                    Formatos: PNG, JPG, JPEG
-                  </p>
-                  <p className="text-sm text-gris-oscuro/70">
-                    Tamaño máximo: 5MB
-                  </p>
-                  <Badge className="mt-4 bg-naranja/10 text-naranja border border-naranja/30">
-                    Recomendado: 1920x1080px
-                  </Badge>
-                </div>
-                <input 
-                  type="file" 
-                  className="hidden" 
-                  accept="image/*"
-                  onChange={handleImageChange}
-                />
-              </label>
-            )}
+            {/* TABS IMAGEN/VIDEO */}
+            <Tabs value={mediaType} onValueChange={handleMediaTypeChange} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-6">
+                <TabsTrigger value="imagen" className="flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4" />
+                  Imagen
+                </TabsTrigger>
+                <TabsTrigger value="video" className="flex items-center gap-2">
+                  <Video className="w-4 h-4" />
+                  Video
+                </TabsTrigger>
+              </TabsList>
 
-            <p className="text-sm text-gris-oscuro/70 text-center py-2 bg-amarillo-dorado/10 rounded-lg border border-amarillo-dorado/20">
-              💡 <span className="font-semibold">Tip:</span> Usa imágenes horizontales de alta calidad para mejores resultados
-            </p>
+              {/* TAB IMAGEN */}
+              <TabsContent value="imagen" className="space-y-4">
+                {imagePreview ? (
+                  <div className="relative group">
+                    <div className="relative w-full h-96 rounded-xl overflow-hidden border-2 border-gris-medio group-hover:border-naranja transition-all">
+                      <Image 
+                        src={imagePreview} 
+                        alt="Preview"
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={removeImage}
+                      className="absolute top-4 right-4 p-2 bg-red-600 hover:bg-red-700 text-blanco rounded-full transition-all shadow-lg opacity-0 group-hover:opacity-100"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                    <Badge className="absolute bottom-4 left-4 bg-gradient-cta text-blanco font-bold shadow-naranja text-sm py-2 px-4">
+                      Imagen Principal
+                    </Badge>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center w-full h-96 border-2 border-dashed border-gris-medio rounded-xl cursor-pointer hover:border-naranja hover:bg-naranja/5 transition-all group">
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                      <div className="w-20 h-20 bg-naranja/10 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-naranja/20 transition-all">
+                        <Upload className="w-10 h-10 text-naranja" />
+                      </div>
+                      <p className="mb-3 text-lg text-gris-oscuro font-bold">
+                        Click para subir o arrastra y suelta
+                      </p>
+                      <p className="text-sm text-gris-oscuro/70 mb-2">
+                        Formatos: PNG, JPG, JPEG
+                      </p>
+                      <p className="text-sm text-gris-oscuro/70">
+                        Tamaño máximo: 5MB
+                      </p>
+                      <Badge className="mt-4 bg-naranja/10 text-naranja border border-naranja/30">
+                        Recomendado: 1920x1080px
+                      </Badge>
+                    </div>
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      accept="image/*"
+                      onChange={handleImageChange}
+                    />
+                  </label>
+                )}
+              </TabsContent>
+
+              {/* TAB VIDEO */}
+              <TabsContent value="video" className="space-y-4">
+                <div>
+                  <Label htmlFor="video_url" className="text-gris-oscuro font-semibold mb-2 flex items-center gap-2">
+                    <LinkIcon className="w-4 h-4 text-naranja" />
+                    URL del Video
+                  </Label>
+                  <Input
+                    id="video_url"
+                    name="video_url"
+                    value={formData.video_url}
+                    onChange={handleChange}
+                    placeholder="Pega aquí el enlace de YouTube o Google Drive..."
+                    className="border-2 border-gris-medio focus:border-naranja h-12 rounded-xl"
+                  />
+                  
+                  {/* EJEMPLOS */}
+                  <div className="mt-3 p-4 bg-gris-claro rounded-lg space-y-2">
+                    <p className="text-xs font-semibold text-gris-oscuro mb-2">📌 Formatos aceptados:</p>
+                    
+                    <div className="flex items-start gap-2">
+                      <Youtube className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-xs font-semibold text-gris-oscuro">YouTube:</p>
+                        <code className="text-xs text-gris-oscuro/70 break-all">
+                          https://www.youtube.com/watch?v=...
+                        </code>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start gap-2">
+                      <HardDrive className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-xs font-semibold text-gris-oscuro">Google Drive:</p>
+                        <code className="text-xs text-gris-oscuro/70 break-all">
+                          https://drive.google.com/file/d/.../view
+                        </code>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* DETECTOR DE TIPO */}
+                  {formData.video_url && videoType && (
+                    <div className="mt-3">
+                      <Badge className={`${
+                        videoType === 'youtube' ? 'bg-red-100 text-red-700 border-red-300' :
+                        'bg-blue-100 text-blue-700 border-blue-300'
+                      } border-2`}>
+                        {videoType === 'youtube' ? (
+                          <>
+                            <Youtube className="w-3 h-3 mr-1" />
+                            Video de YouTube detectado
+                          </>
+                        ) : (
+                          <>
+                            <HardDrive className="w-3 h-3 mr-1" />
+                            Video de Google Drive detectado
+                          </>
+                        )}
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+
+                {/* PREVIEW VIDEO */}
+                {embedUrl && (
+                  <div className="relative w-full rounded-xl overflow-hidden border-2 border-naranja bg-gris-oscuro">
+                    <div className="aspect-video">
+                      <iframe
+                        className="w-full h-full"
+                        src={embedUrl}
+                        title="Video preview"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    </div>
+                    <Badge className="absolute bottom-4 left-4 bg-gradient-cta text-blanco font-bold shadow-naranja text-sm py-2 px-4">
+                      <Video className="w-4 h-4 mr-1" />
+                      Video Principal
+                    </Badge>
+                  </div>
+                )}
+
+                {formData.video_url && !videoType && (
+                  <Alert className="border-2 bg-yellow-50 border-yellow-500">
+                    <AlertCircle className="h-5 w-5 text-yellow-600" />
+                    <AlertDescription className="font-semibold ml-2 text-yellow-800">
+                      <div className="font-bold mb-1">URL no reconocida</div>
+                      <div className="text-sm font-normal">
+                        Asegúrate de usar un enlace de YouTube o Google Drive válido
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
 
@@ -342,18 +528,35 @@ export default function NuevoAnuncioPage() {
           </CardHeader>
           <CardContent>
             <div className="bg-blanco rounded-xl border-2 border-gris-medio overflow-hidden">
-              {/* Preview Image */}
-              <div className="relative h-48 bg-gris-medio">
-                {imagePreview ? (
-                  <Image 
-                    src={imagePreview} 
-                    alt="Preview"
-                    fill
-                    className="object-cover"
-                  />
+              {/* Preview Media */}
+              <div className="relative bg-gris-medio">
+                {mediaType === 'imagen' && imagePreview ? (
+                  <div className="relative h-64">
+                    <Image 
+                      src={imagePreview} 
+                      alt="Preview"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                ) : mediaType === 'video' && embedUrl ? (
+                  <div className="aspect-video">
+                    <iframe
+                      className="w-full h-full"
+                      src={embedUrl}
+                      title="Video preview"
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <ImageIcon className="w-16 h-16 text-gris-oscuro/30" />
+                  <div className="w-full h-48 flex items-center justify-center">
+                    {mediaType === 'imagen' ? (
+                      <ImageIcon className="w-16 h-16 text-gris-oscuro/30" />
+                    ) : (
+                      <Video className="w-16 h-16 text-gris-oscuro/30" />
+                    )}
                   </div>
                 )}
                 <Badge className="absolute top-3 right-3 bg-green-500 text-blanco font-bold">

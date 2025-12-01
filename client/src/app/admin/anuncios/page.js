@@ -9,7 +9,6 @@ import {
   Search, 
   Edit, 
   Trash2, 
-  Eye,
   Loader2,
   Newspaper,
   CheckCircle,
@@ -20,7 +19,10 @@ import {
   ToggleLeft,
   ToggleRight,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Video,
+  Youtube,
+  HardDrive
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -63,6 +65,40 @@ export default function AnunciosPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Extraer ID de YouTube
+  const extractYouTubeId = (url) => {
+    if (!url) return null;
+    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    const match = url.match(regex);
+    return match ? match[1] : null;
+  };
+
+  // Extraer ID de Google Drive
+  const extractDriveId = (url) => {
+    if (!url) return null;
+    const regex = /(?:drive\.google\.com\/file\/d\/|drive\.google\.com\/open\?id=)([a-zA-Z0-9_-]+)/;
+    const match = url.match(regex);
+    return match ? match[1] : null;
+  };
+
+  // Detectar tipo de video
+  const detectVideoType = (url) => {
+    if (!url) return null;
+    if (extractYouTubeId(url)) return 'youtube';
+    if (extractDriveId(url)) return 'drive';
+    return null;
+  };
+
+  // Obtener thumbnail de YouTube
+  const getYouTubeThumbnail = (videoId) => {
+    return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+  };
+
+  // Obtener thumbnail de Drive (o placeholder)
+  const getDriveThumbnail = () => {
+    return null; // Drive no tiene thumbnails públicos
   };
 
   const handleToggleActivo = async (id, currentState) => {
@@ -140,6 +176,8 @@ export default function AnunciosPage() {
     total: anuncios.length,
     activos: anuncios.filter(a => a.activo).length,
     inactivos: anuncios.filter(a => !a.activo).length,
+    conVideo: anuncios.filter(a => a.video_url).length,
+    conImagen: anuncios.filter(a => a.imagen).length,
   };
 
   if (loading) {
@@ -200,45 +238,63 @@ export default function AnunciosPage() {
       )}
 
       {/* STATS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card className="border-2 border-gris-medio hover:border-naranja transition-all">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-gris-oscuro/70 mb-1">Total Anuncios</p>
-                <p className="text-3xl font-extrabold text-naranja">{stats.total}</p>
+          <CardContent className="p-4">
+            <div className="text-center">
+              <div className="w-12 h-12 bg-gradient-cta rounded-2xl flex items-center justify-center shadow-naranja mx-auto mb-2">
+                <Newspaper className="w-6 h-6 text-blanco" />
               </div>
-              <div className="w-14 h-14 bg-gradient-cta rounded-2xl flex items-center justify-center shadow-naranja">
-                <Newspaper className="w-7 h-7 text-blanco" />
-              </div>
+              <p className="text-2xl font-extrabold text-naranja">{stats.total}</p>
+              <p className="text-xs font-semibold text-gris-oscuro/70">Total</p>
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-2 border-gris-medio hover:border-green-500 transition-all">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-gris-oscuro/70 mb-1">Activos</p>
-                <p className="text-3xl font-extrabold text-green-500">{stats.activos}</p>
+          <CardContent className="p-4">
+            <div className="text-center">
+              <div className="w-12 h-12 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-2">
+                <CheckCircle className="w-6 h-6 text-green-500" />
               </div>
-              <div className="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center">
-                <CheckCircle className="w-7 h-7 text-green-500" />
-              </div>
+              <p className="text-2xl font-extrabold text-green-500">{stats.activos}</p>
+              <p className="text-xs font-semibold text-gris-oscuro/70">Activos</p>
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-2 border-gris-medio hover:border-red-500 transition-all">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-gris-oscuro/70 mb-1">Inactivos</p>
-                <p className="text-3xl font-extrabold text-red-500">{stats.inactivos}</p>
+          <CardContent className="p-4">
+            <div className="text-center">
+              <div className="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-2">
+                <XCircle className="w-6 h-6 text-red-500" />
               </div>
-              <div className="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center">
-                <XCircle className="w-7 h-7 text-red-500" />
+              <p className="text-2xl font-extrabold text-red-500">{stats.inactivos}</p>
+              <p className="text-xs font-semibold text-gris-oscuro/70">Inactivos</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-2 border-gris-medio hover:border-purple-500 transition-all">
+          <CardContent className="p-4">
+            <div className="text-center">
+              <div className="w-12 h-12 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-2">
+                <Video className="w-6 h-6 text-purple-500" />
               </div>
+              <p className="text-2xl font-extrabold text-purple-500">{stats.conVideo}</p>
+              <p className="text-xs font-semibold text-gris-oscuro/70">Videos</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-2 border-gris-medio hover:border-blue-500 transition-all">
+          <CardContent className="p-4">
+            <div className="text-center">
+              <div className="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-2">
+                <ImageIcon className="w-6 h-6 text-blue-500" />
+              </div>
+              <p className="text-2xl font-extrabold text-blue-500">{stats.conImagen}</p>
+              <p className="text-xs font-semibold text-gris-oscuro/70">Imágenes</p>
             </div>
           </CardContent>
         </Card>
@@ -268,137 +324,191 @@ export default function AnunciosPage() {
 
       {/* GRID ANUNCIOS */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredAnuncios.map((anuncio, index) => (
-          <Card key={anuncio.id} className="border-2 border-gris-medio hover:border-naranja transition-all hover:shadow-xl group overflow-hidden">
-            
-            {/* Imagen */}
-            <div className="relative h-56 bg-gris-medio">
-              {anuncio.imagen ? (
-                <Image 
-                  src={anuncio.imagen} 
-                  alt={anuncio.titulo}
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <ImageIcon className="w-16 h-16 text-gris-oscuro/30" />
-                </div>
-              )}
+        {filteredAnuncios.map((anuncio, index) => {
+          const videoType = detectVideoType(anuncio.video_url);
+          const hasVideo = !!anuncio.video_url;
+          const hasImage = !!anuncio.imagen;
+          
+          return (
+            <Card key={anuncio.id} className="border-2 border-gris-medio hover:border-naranja transition-all hover:shadow-xl group overflow-hidden">
               
-              {/* Badge estado */}
-              <Badge className={cn(
-                'absolute top-3 right-3 font-bold border-0 shadow-lg',
-                anuncio.activo 
-                  ? 'bg-green-500 hover:bg-green-600 text-blanco' 
-                  : 'bg-red-500 hover:bg-red-600 text-blanco'
-              )}>
-                {anuncio.activo ? 'Activo' : 'Inactivo'}
-              </Badge>
+              {/* Media Preview */}
+              <div className="relative h-56 bg-gris-medio">
+                {hasImage ? (
+                  // Mostrar imagen
+                  <Image 
+                    src={anuncio.imagen} 
+                    alt={anuncio.titulo}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                ) : hasVideo && videoType === 'youtube' ? (
+                  // Mostrar thumbnail de YouTube
+                  <>
+                    <Image 
+                      src={getYouTubeThumbnail(extractYouTubeId(anuncio.video_url))} 
+                      alt={anuncio.titulo}
+                      fill
+                      className="object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gris-oscuro/40 flex items-center justify-center">
+                      <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center shadow-lg">
+                        <Youtube className="w-8 h-8 text-blanco" />
+                      </div>
+                    </div>
+                  </>
+                ) : hasVideo && videoType === 'drive' ? (
+                  // Placeholder para Drive
+                  <div className="w-full h-full flex flex-col items-center justify-center bg-blue-100">
+                    <HardDrive className="w-16 h-16 text-blue-600 mb-2" />
+                    <p className="text-sm font-semibold text-blue-600">Video de Drive</p>
+                  </div>
+                ) : (
+                  // Sin media
+                  <div className="w-full h-full flex items-center justify-center">
+                    <ImageIcon className="w-16 h-16 text-gris-oscuro/30" />
+                  </div>
+                )}
+                
+                {/* Badge estado */}
+                <Badge className={cn(
+                  'absolute top-3 right-3 font-bold border-0 shadow-lg',
+                  anuncio.activo 
+                    ? 'bg-green-500 hover:bg-green-600 text-blanco' 
+                    : 'bg-red-500 hover:bg-red-600 text-blanco'
+                )}>
+                  {anuncio.activo ? 'Activo' : 'Inactivo'}
+                </Badge>
 
-              {/* Número de orden */}
-              <Badge className="absolute top-3 left-3 bg-gris-oscuro/80 text-blanco font-bold border-0">
-                #{index + 1}
-              </Badge>
-            </div>
-
-            <CardContent className="p-5">
-              
-              {/* Título */}
-              <h3 className="text-lg font-bold text-gris-oscuro mb-2 line-clamp-2 group-hover:text-naranja transition-colors min-h-[3.5rem]">
-                {anuncio.titulo}
-              </h3>
-
-              {/* Descripción */}
-              {anuncio.descripcion && (
-                <p className="text-sm text-gris-oscuro/70 mb-4 line-clamp-2">
-                  {anuncio.descripcion}
-                </p>
-              )}
-
-              {/* Fecha */}
-              <div className="flex items-center gap-2 text-xs text-gris-oscuro/70 mb-4 pt-2 border-t border-gris-medio">
-                <Calendar className="w-4 h-4 text-naranja" />
-                <span>
-                  {new Date(anuncio.created_at).toLocaleDateString('es-GT', {
-                    day: '2-digit',
-                    month: 'long',
-                    year: 'numeric'
-                  })}
-                </span>
-              </div>
-
-              {/* Acciones */}
-              <div className="space-y-2">
-                {/* Toggle Activo */}
-                <Button
-                  variant="outline"
-                  className={cn(
-                    'w-full border-2 rounded-xl font-bold',
-                    anuncio.activo
-                      ? 'border-green-500 text-green-600 hover:bg-green-50'
-                      : 'border-red-500 text-red-600 hover:bg-red-50'
-                  )}
-                  onClick={() => handleToggleActivo(anuncio.id, anuncio.activo)}
-                >
-                  {anuncio.activo ? (
+                {/* Badge tipo de media */}
+                <Badge className="absolute bottom-3 right-3 bg-gris-oscuro/80 text-blanco font-bold border-0 shadow-lg">
+                  {hasImage ? (
                     <>
-                      <ToggleRight className="w-5 h-5 mr-2" />
-                      Desactivar
+                      <ImageIcon className="w-3 h-3 mr-1" />
+                      Imagen
+                    </>
+                  ) : videoType === 'youtube' ? (
+                    <>
+                      <Youtube className="w-3 h-3 mr-1" />
+                      YouTube
+                    </>
+                  ) : videoType === 'drive' ? (
+                    <>
+                      <HardDrive className="w-3 h-3 mr-1" />
+                      Drive
                     </>
                   ) : (
                     <>
-                      <ToggleLeft className="w-5 h-5 mr-2" />
-                      Activar
+                      <Video className="w-3 h-3 mr-1" />
+                      Video
                     </>
                   )}
-                </Button>
+                </Badge>
 
-                {/* Botones de orden y acciones */}
-                <div className="grid grid-cols-4 gap-2">
+                {/* Número de orden */}
+                <Badge className="absolute top-3 left-3 bg-gris-oscuro/80 text-blanco font-bold border-0">
+                  #{index + 1}
+                </Badge>
+              </div>
+
+              <CardContent className="p-5">
+                
+                {/* Título */}
+                <h3 className="text-lg font-bold text-gris-oscuro mb-2 line-clamp-2 group-hover:text-naranja transition-colors min-h-[3.5rem]">
+                  {anuncio.titulo}
+                </h3>
+
+                {/* Descripción */}
+                {anuncio.descripcion && (
+                  <p className="text-sm text-gris-oscuro/70 mb-4 line-clamp-2">
+                    {anuncio.descripcion}
+                  </p>
+                )}
+
+                {/* Fecha */}
+                <div className="flex items-center gap-2 text-xs text-gris-oscuro/70 mb-4 pt-2 border-t border-gris-medio">
+                  <Calendar className="w-4 h-4 text-naranja" />
+                  <span>
+                    {new Date(anuncio.created_at).toLocaleDateString('es-GT', {
+                      day: '2-digit',
+                      month: 'long',
+                      year: 'numeric'
+                    })}
+                  </span>
+                </div>
+
+                {/* Acciones */}
+                <div className="space-y-2">
+                  {/* Toggle Activo */}
                   <Button
                     variant="outline"
-                    size="icon"
-                    disabled={index === 0}
-                    onClick={() => handleChangeOrden(anuncio.id, 'up')}
-                    className="border-2 border-gris-medio hover:border-blue-500 hover:bg-blue-50 text-blue-600 rounded-xl disabled:opacity-30"
+                    className={cn(
+                      'w-full border-2 rounded-xl font-bold',
+                      anuncio.activo
+                        ? 'border-green-500 text-green-600 hover:bg-green-50'
+                        : 'border-red-500 text-red-600 hover:bg-red-50'
+                    )}
+                    onClick={() => handleToggleActivo(anuncio.id, anuncio.activo)}
                   >
-                    <ArrowUp className="w-4 h-4" />
+                    {anuncio.activo ? (
+                      <>
+                        <ToggleRight className="w-5 h-5 mr-2" />
+                        Desactivar
+                      </>
+                    ) : (
+                      <>
+                        <ToggleLeft className="w-5 h-5 mr-2" />
+                        Activar
+                      </>
+                    )}
                   </Button>
 
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    disabled={index === filteredAnuncios.length - 1}
-                    onClick={() => handleChangeOrden(anuncio.id, 'down')}
-                    className="border-2 border-gris-medio hover:border-blue-500 hover:bg-blue-50 text-blue-600 rounded-xl disabled:opacity-30"
-                  >
-                    <ArrowDown className="w-4 h-4" />
-                  </Button>
-
-                  <Link href={`/admin/anuncios/editar/${anuncio.id}`}>
-                    <Button 
+                  {/* Botones de orden y acciones */}
+                  <div className="grid grid-cols-4 gap-2">
+                    <Button
                       variant="outline"
                       size="icon"
-                      className="w-full border-2 border-gris-medio hover:border-naranja hover:bg-naranja/10 text-naranja rounded-xl"
+                      disabled={index === 0}
+                      onClick={() => handleChangeOrden(anuncio.id, 'up')}
+                      className="border-2 border-gris-medio hover:border-blue-500 hover:bg-blue-50 text-blue-600 rounded-xl disabled:opacity-30"
                     >
-                      <Edit className="w-4 h-4" />
+                      <ArrowUp className="w-4 h-4" />
                     </Button>
-                  </Link>
 
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setDeleteModal(anuncio)}
-                    className="border-2 border-gris-medio hover:border-red-500 hover:bg-red-50 text-red-600 rounded-xl"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      disabled={index === filteredAnuncios.length - 1}
+                      onClick={() => handleChangeOrden(anuncio.id, 'down')}
+                      className="border-2 border-gris-medio hover:border-blue-500 hover:bg-blue-50 text-blue-600 rounded-xl disabled:opacity-30"
+                    >
+                      <ArrowDown className="w-4 h-4" />
+                    </Button>
+
+                    <Link href={`/admin/anuncios/editar/${anuncio.id}`}>
+                      <Button 
+                        variant="outline"
+                        size="icon"
+                        className="w-full border-2 border-gris-medio hover:border-naranja hover:bg-naranja/10 text-naranja rounded-xl"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                    </Link>
+
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setDeleteModal(anuncio)}
+                      className="border-2 border-gris-medio hover:border-red-500 hover:bg-red-50 text-red-600 rounded-xl"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       {/* EMPTY STATE */}

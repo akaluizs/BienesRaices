@@ -22,6 +22,18 @@ export default function PropertyCard({ property }) {
     type = 'Casa',
   } = property;
 
+  // Función para obtener color según el tipo
+  const getTypeColor = (type) => {
+    const colors = {
+      'Casa': 'bg-blue-500',
+      'Apartamento': 'bg-purple-500',
+      'Terreno': 'bg-green-500',
+      'Local Comercial': 'bg-orange-500',
+      'Oficina': 'bg-cyan-500',
+    };
+    return colors[type] || 'bg-naranja';
+  };
+
   return (
     <Card className="overflow-hidden border-2 border-gris-medio hover:border-naranja transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 group h-full flex flex-col">
       
@@ -38,44 +50,24 @@ export default function PropertyCard({ property }) {
           {/* Overlay en hover */}
           <div className="absolute inset-0 bg-negro/0 group-hover:bg-negro/20 transition-all duration-300" />
           
-          {/* Badge de tipo */}
+          {/* Badge de tipo con color sólido */}
           <div className="absolute top-4 right-4">
             <Badge 
-              className="bg-gradient-cta text-blanco font-bold px-4 py-1.5 shadow-naranja"
+              className={`${getTypeColor(type)} text-blanco font-bold px-4 py-1.5 shadow-lg border-0`}
             >
               {type}
             </Badge>
           </div>
-
-          {/* Badge Premium (opcional) */}
-          {price > 500000 && (
-            <div className="absolute top-4 left-4">
-              <Badge 
-                className="bg-amarillo-dorado text-negro font-bold px-3 py-1 shadow-lg"
-              >
-                ⭐ Premium
-              </Badge>
-            </div>
-          )}
         </div>
       </CardHeader>
 
       {/* CUERPO - flex-grow para empujar el footer abajo */}
       <CardContent className="p-6 flex-grow">
         
-        {/* PRECIO */}
+        {/* PRECIO EN NEGRITA */}
         <div className="mb-4">
-          <h3 className="text-3xl font-extrabold mb-1">
-            <span 
-              style={{
-                background: 'linear-gradient(135deg, #FF8C00, #E04A1F, #FFD700)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text'
-              }}
-            >
-              Q {price.toLocaleString()}
-            </span>
+          <h3 className="text-3xl font-extrabold text-naranja mb-1">
+            Q {price.toLocaleString()}
           </h3>
           
           {/* UBICACIÓN */}

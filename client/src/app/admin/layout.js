@@ -87,7 +87,7 @@ export default function AdminLayout({ children }) {
       title: 'Contactos',
       icon: MessageSquare,
       href: '/admin/contactos',
-      badge: 'nuevo'
+      badge: null
     },
   ];
 
