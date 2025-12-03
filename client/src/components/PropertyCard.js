@@ -19,19 +19,17 @@ export default function PropertyCard({ property }) {
     bedrooms,
     bathrooms,
     parking,
-    type = 'Casa',
+    tipo = 'Casa',
+    VentaPreventa = 'Venta',
   } = property;
 
-  // Función para obtener color según el tipo
-  const getTypeColor = (type) => {
+  // Función para obtener color según el VentaPreventa
+  const getStatusColor = (status) => {
     const colors = {
-      'Casa': 'bg-blue-500',
-      'Apartamento': 'bg-purple-500',
-      'Terreno': 'bg-green-500',
-      'Local Comercial': 'bg-orange-500',
-      'Oficina': 'bg-cyan-500',
+      'Venta': 'bg-gradient-to-r from-emerald-500 to-green-600',
+      'Preventa': 'bg-gradient-to-r from-blue-500 to-cyan-600',
     };
-    return colors[type] || 'bg-naranja';
+    return colors[status] || 'bg-gradient-to-r from-emerald-500 to-green-600';
   };
 
   return (
@@ -50,12 +48,24 @@ export default function PropertyCard({ property }) {
           {/* Overlay en hover */}
           <div className="absolute inset-0 bg-negro/0 group-hover:bg-negro/20 transition-all duration-300" />
           
-          {/* Badge de tipo con color sólido */}
+          {/* Badge de VentaPreventa - IZQUIERDA */}
+          <div className="absolute top-4 left-4">
+            <Badge 
+              className={`${getStatusColor(VentaPreventa)} text-blanco font-bold px-4 py-1.5 shadow-lg border-0 rounded-full`}
+            >
+              {VentaPreventa}
+            </Badge>
+          </div>
+
+          {/* Badge de tipo - DERECHA CON GRADIENT PRIMARY GLOBAL */}
           <div className="absolute top-4 right-4">
             <Badge 
-              className={`${getTypeColor(type)} text-blanco font-bold px-4 py-1.5 shadow-lg border-0`}
+              className="text-blanco font-bold px-4 py-1.5 shadow-lg border-0 rounded-full"
+              style={{
+                background: 'var(--gradient-primary)',
+              }}
             >
-              {type}
+              {tipo}
             </Badge>
           </div>
         </div>
@@ -149,6 +159,9 @@ export default function PropertyCard({ property }) {
         <Link href={`/propiedades/${id}`} className="w-full">
           <Button 
             className="w-full btn-cta py-6 text-base font-bold shadow-naranja group"
+            style={{
+              background: 'var(--gradient-primary)',
+            }}
           >
             <Eye className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
             Ver Detalles

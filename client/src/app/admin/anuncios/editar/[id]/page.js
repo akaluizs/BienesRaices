@@ -1,23 +1,27 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { useImageUpload } from '@/hooks/useImageUpload';
+import { updateProperty, getProperty } from '@/lib/actions/propertyActions';
 import { 
   ArrowLeft,
   Upload,
   X,
   Loader2,
-  Newspaper,
+  Home,
+  MapPin,
+  DollarSign,
+  Bed,
+  Bath,
+  Maximize,
   FileText,
   Image as ImageIcon,
+  Building2,
   CheckCircle,
   AlertCircle,
-  Save,
-  Video,
-  Link as LinkIcon,
-  Youtube,
-  HardDrive
+  Zap,
+  Star,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -27,28 +31,43 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-export default function EditarAnuncioPage({ params }) {
+export default function EditarPropiedadPage({ params }) {
   const { id } = use(params);
   const router = useRouter();
+  const { processImage, uploading, progress } = useImageUpload();
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
-  const [imagePreview, setImagePreview] = useState(null);
+  const [imagePreviews, setImagePreviews] = useState([]);
   const [alert, setAlert] = useState(null);
-  const [mediaType, setMediaType] = useState('imagen'); // 'imagen' o 'video'
+  const [uploadStatus, setUploadStatus] = useState('');
+  const [propiedadActual, setPropiedadActual] = useState(null);
   const [formData, setFormData] = useState({
     titulo: '',
+    tipo: '',
+    precio: '',
+    ubicacion: '',
     descripcion: '',
-    imagen: null,
-    video_url: '',
-    activo: true
+    habitaciones: '',
+    banos: '',
+    metros2: '',
+    VentaPreventa: 'Venta',
+    codigo: '',
+    imagenes: [],
+    headerImageIndex: 0, 
+    headerImage: '', 
   });
 
   useEffect(() => {
-    loadAnuncio();
+    loadPropiedad();
   }, [id]);
 
   const showAlert = (type, message, description = '') => {
@@ -56,47 +75,47 @@ export default function EditarAnuncioPage({ params }) {
     setTimeout(() => setAlert(null), 4000);
   };
 
-  const loadAnuncio = async () => {
+  const loadPropiedad = async () => {
     try {
-      setLoadingData(true);
-      const { data, error } = await supabase
-        .from('anuncios')
-        .select('*')
-        .eq('id', id)
-        .single();
+      const result = await getProperty(id);
 
-      if (error) throw error;
-
-      if (!data) {
-        showAlert('error', 'Anuncio no encontrado');
-        setTimeout(() => router.push('/admin/anuncios'), 2000);
-        return;
+      if (!result.success) {
+        throw new Error(result.error);
       }
 
-      // Detectar si es imagen o video
-      const hasVideo = data.video_url && data.video_url.trim() !== '';
-      const hasImage = data.imagen && data.imagen.trim() !== '';
+      const data = result.data;
 
-      setFormData({
-        titulo: data.titulo || '',
-        descripcion: data.descripcion || '',
-        imagen: hasImage ? data.imagen : null,
-        video_url: hasVideo ? data.video_url : '',
-        activo: data.activo ?? true
-      });
+      if (data) {
+        setPropiedadActual(data);
 
-      // Establecer tipo de media
-      if (hasVideo) {
-        setMediaType('video');
-      } else if (hasImage) {
-        setMediaType('imagen');
-        setImagePreview(data.imagen);
+        let headerIndex = 0;
+        if (data.header_image && Array.isArray(data.imagenes)) {
+          headerIndex = data.imagenes.findIndex(img => img === data.header_image);
+          if (headerIndex === -1) headerIndex = 0; 
+        }
+
+        setFormData({
+          titulo: data.titulo || '',
+          tipo: data.tipo || '',
+          precio: data.precio || '',
+          ubicacion: data.ubicacion || '',
+          descripcion: data.descripcion || '',
+          habitaciones: data.habitaciones || '',
+          banos: data.banos || '',
+          metros2: data.metros2 || '',
+          VentaPreventa: data.VentaPreventa || 'Venta',
+          codigo: data.codigo || '',
+          imagenes: data.imagenes || [],
+          headerImageIndex: headerIndex,
+          headerImage: data.header_image || '',
+        });
+        setImagePreviews(data.imagenes || []);
+        showAlert('success', 'Propiedad cargada correctamente');
       }
-
-      showAlert('success', 'Anuncio cargado correctamente');
     } catch (error) {
-      console.error('Error cargando anuncio:', error);
-      showAlert('error', 'Error al cargar el anuncio', error.message);
+      console.error('Error cargando propiedad:', error);
+      showAlert('error', 'Error al cargar la propiedad', error.message);
+      setTimeout(() => router.push('/admin/propiedades'), 2000);
     } finally {
       setLoadingData(false);
     }
@@ -110,174 +129,205 @@ export default function EditarAnuncioPage({ params }) {
     }));
   };
 
-  const handleSwitchChange = (checked) => {
+  const handleSelectChange = (value) => {
     setFormData(prev => ({
       ...prev,
-      activo: checked
+      tipo: value
     }));
   };
 
-  const handleMediaTypeChange = (type) => {
-    setMediaType(type);
-    // Limpiar el otro tipo de media
-    if (type === 'imagen') {
-      setFormData(prev => ({ ...prev, video_url: '' }));
-    } else {
-      setFormData(prev => ({ ...prev, imagen: null }));
-      setImagePreview(null);
-    }
+  const handleVentaPreventa = (value) => {
+    setFormData(prev => ({
+      ...prev,
+      VentaPreventa: value
+    }));
+  };
+
+  const createSlug = (text) => {
+    return text
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
+  };
+
+  // ✅ Establecer imagen como principal
+  const setHeaderImage = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      headerImageIndex: index,
+      headerImage: prev.imagenes[index] || '',
+    }));
   };
 
   const handleImageChange = (e) => {
-    const file = e.target.files[0];
+    const files = Array.from(e.target.files);
     
-    if (!file) return;
+    if (files.length === 0) return;
 
-    // Validar tipo de archivo
-    if (!file.type.startsWith('image/')) {
-      showAlert('error', 'Archivo no válido', 'Por favor selecciona una imagen (JPG, PNG, JPEG)');
+    if (imagePreviews.length + files.length > 10) {
+      showAlert('warning', 'Máximo 10 imágenes permitidas', 
+        `Ya tienes ${imagePreviews.length} imágenes. Puedes agregar ${10 - imagePreviews.length} más.`);
       return;
     }
 
-    // Validar tamaño (máx 5MB)
     const maxSize = 5 * 1024 * 1024; // 5MB
-    if (file.size > maxSize) {
-      showAlert('error', 'Imagen demasiado grande', 'El tamaño máximo permitido es 5MB');
-      return;
+    for (let file of files) {
+      if (file.size > maxSize) {
+        showAlert('error', 'Imagen demasiado grande', 
+          `${file.name} excede el tamaño máximo de 5MB`);
+        return;
+      }
     }
 
-    // Convertir a base64
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result);
-      setFormData(prev => ({
-        ...prev,
-        imagen: reader.result,
-        video_url: '' // Limpiar video si hay imagen
-      }));
-      showAlert('success', 'Imagen cargada correctamente');
-    };
-    reader.onerror = () => {
-      showAlert('error', 'Error al cargar la imagen', 'Intenta de nuevo');
-    };
-    reader.readAsDataURL(file);
+    // Procesar imágenes
+    let processedCount = 0;
+    const newImageUrls = [];
+
+    files.forEach((file, index) => {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        // Agregar preview temporal
+        setImagePreviews(prev => [...prev, reader.result]);
+
+        // Procesar y subir a R2
+        try {
+          const slug = createSlug(formData.titulo);
+          setUploadStatus(`Optimizando imagen ${index + 1}/${files.length}...`);
+
+          const result = await processImage(
+            file,
+            'propiedades',
+            slug,
+            (msg) => setUploadStatus(msg)
+          );
+
+          newImageUrls.push(result.url);
+          processedCount++;
+
+          // Si terminamos de procesar todas
+          if (processedCount === files.length) {
+            const todasLasImagenes = [...formData.imagenes, ...newImageUrls];
+            setFormData(prev => ({
+              ...prev,
+              imagenes: todasLasImagenes
+            }));
+            setUploadStatus('');
+            showAlert('success', `${files.length} imagen(es) agregada(s) y optimizada(s)`);
+          }
+        } catch (error) {
+          console.error('Error procesando imagen:', error);
+          showAlert('error', 'Error optimizando imagen', error.message);
+          setUploadStatus('');
+          // Remover preview si falló
+          setImagePreviews(prev => prev.filter((_, i) => i !== prev.length - 1));
+        }
+      };
+      reader.readAsDataURL(file);
+    });
   };
 
-  const removeImage = () => {
-    setImagePreview(null);
+  const removeImage = async (index) => {
+    const imageUrl = imagePreviews[index];
+
+    // Si es una URL de R2, eliminar de R2
+    if (imageUrl && imageUrl.startsWith('https://')) {
+      try {
+        await fetch('/api/r2/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileUrl: imageUrl }),
+        });
+      } catch (error) {
+        console.warn('⚠️ No se pudo eliminar imagen de R2:', error);
+      }
+    }
+
+    let nuevoIndice = formData.headerImageIndex;
+    if (nuevoIndice === index) {
+      nuevoIndice = Math.max(0, index - 1);
+    } else if (nuevoIndice > index) {
+      nuevoIndice--;
+    }
+
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+    const nuevasImagenes = formData.imagenes.filter((_, i) => i !== index);
+    
     setFormData(prev => ({
       ...prev,
-      imagen: null
+      imagenes: nuevasImagenes,
+      headerImageIndex: nuevoIndice,
+      headerImage: nuevasImagenes[nuevoIndice] || '',
     }));
+    
     showAlert('success', 'Imagen eliminada');
-  };
-
-  // Extraer ID de YouTube
-  const extractYouTubeId = (url) => {
-    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
-    const match = url.match(regex);
-    return match ? match[1] : null;
-  };
-
-  // Extraer ID de Google Drive
-  const extractDriveId = (url) => {
-    const regex = /(?:drive\.google\.com\/file\/d\/|drive\.google\.com\/open\?id=)([a-zA-Z0-9_-]+)/;
-    const match = url.match(regex);
-    return match ? match[1] : null;
-  };
-
-  // Detectar tipo de video
-  const detectVideoType = (url) => {
-    if (!url) return null;
-    if (extractYouTubeId(url)) return 'youtube';
-    if (extractDriveId(url)) return 'drive';
-    return null;
-  };
-
-  // Obtener embed URL según el tipo
-  const getEmbedUrl = (url) => {
-    if (!url) return null;
-    const videoType = detectVideoType(url);
-    
-    if (videoType === 'youtube') {
-      const videoId = extractYouTubeId(url);
-      return `https://www.youtube.com/embed/${videoId}`;
-    }
-    
-    if (videoType === 'drive') {
-      const fileId = extractDriveId(url);
-      return `https://drive.google.com/file/d/${fileId}/preview`;
-    }
-    
-    return null;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validaciones
-    if (!formData.titulo.trim()) {
-      showAlert('error', 'Título requerido', 'Por favor ingresa un título para el anuncio');
+    if (!formData.titulo || !formData.tipo || !formData.precio || !formData.ubicacion) {
+      showAlert('error', 'Campos incompletos', 
+        'Por favor completa todos los campos obligatorios marcados con *');
       return;
     }
 
-    if (mediaType === 'imagen' && !formData.imagen) {
-      showAlert('error', 'Imagen requerida', 'Por favor sube una imagen del proyecto');
+    if (formData.imagenes.length === 0) {
+      showAlert('error', 'Se requiere al menos una imagen', 
+        'Agrega al menos una imagen de la propiedad');
       return;
-    }
-
-    if (mediaType === 'video' && !formData.video_url.trim()) {
-      showAlert('error', 'URL de video requerida', 'Por favor ingresa el enlace del video');
-      return;
-    }
-
-    if (mediaType === 'video') {
-      const videoType = detectVideoType(formData.video_url);
-      if (!videoType) {
-        showAlert('error', 'URL inválida', 'Por favor ingresa un enlace válido de YouTube o Google Drive');
-        return;
-      }
     }
 
     setLoading(true);
 
     try {
-      const { data, error } = await supabase
-        .from('anuncios')
-        .update({
-          titulo: formData.titulo.trim(),
-          descripcion: formData.descripcion.trim() || null,
-          imagen: mediaType === 'imagen' ? formData.imagen : null,
-          video_url: mediaType === 'video' ? formData.video_url.trim() : null,
-          activo: formData.activo,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id)
-        .select();
+      setUploadStatus('Actualizando propiedad en base de datos...');
 
-      if (error) throw error;
+      // ✅ Preparar datos para actualizar
+      const propertyData = {
+        titulo: formData.titulo,
+        tipo: formData.tipo,
+        precio: parseFloat(formData.precio),
+        ubicacion: formData.ubicacion,
+        descripcion: formData.descripcion || null,
+        habitaciones: parseInt(formData.habitaciones) || null,
+        banos: parseInt(formData.banos) || null,
+        metros2: parseInt(formData.metros2) || null,
+        VentaPreventa: formData.VentaPreventa || 'Venta',
+        codigo: formData.codigo || null,
+        imagenes: formData.imagenes,
+        header_image: formData.imagenes[formData.headerImageIndex] || formData.imagenes[0],
+      };
 
-      showAlert('success', '¡Anuncio actualizado exitosamente!', 'Redirigiendo al listado...');
+      // ✅ Usar Server Action con revalidación automática
+      const result = await updateProperty(id, propertyData);
+
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+
+      setUploadStatus('');
+      showAlert('success', result.message || 'Propiedad actualizada exitosamente', 
+        'Redirigiendo al listado...');
 
       setTimeout(() => {
-        router.push('/admin/anuncios');
+        router.push('/admin/propiedades');
+        router.refresh(); // Forzar refresh para ver los cambios inmediatamente
       }, 1500);
     } catch (error) {
-      console.error('Error actualizando anuncio:', error);
-      showAlert('error', 'Error al actualizar el anuncio', error.message);
+      console.error('Error actualizando propiedad:', error);
+      showAlert('error', 'Error al actualizar la propiedad', error.message);
+      setUploadStatus('');
     } finally {
       setLoading(false);
     }
   };
 
-  const embedUrl = formData.video_url ? getEmbedUrl(formData.video_url) : null;
-  const videoType = formData.video_url ? detectVideoType(formData.video_url) : null;
-
   if (loadingData) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
         <Loader2 className="w-16 h-16 animate-spin text-naranja mb-4" />
-        <p className="text-gris-oscuro text-lg font-semibold">Cargando anuncio...</p>
+        <p className="text-gris-oscuro text-lg font-semibold">Cargando propiedad...</p>
       </div>
     );
   }
@@ -287,18 +337,18 @@ export default function EditarAnuncioPage({ params }) {
       
       {/* HEADER */}
       <div className="flex items-center gap-4">
-        <Link href="/admin/anuncios">
+        <Link href="/admin/propiedades">
           <Button variant="outline" size="icon" className="border-2 border-gris-medio hover:border-naranja hover:bg-naranja/10 rounded-xl">
             <ArrowLeft className="w-5 h-5" />
           </Button>
         </Link>
         <div>
           <h1 className="text-3xl md:text-4xl font-extrabold text-gris-oscuro flex items-center gap-3">
-            <Newspaper className="w-9 h-9 text-naranja" />
-            Editar Anuncio
+            <Home className="w-9 h-9 text-naranja" />
+            Editar Propiedad
           </h1>
           <p className="text-gris-oscuro/70 mt-2 text-lg">
-            Modifica la información del anuncio
+            Modifica los campos que desees actualizar
           </p>
         </div>
       </div>
@@ -328,336 +378,376 @@ export default function EditarAnuncioPage({ params }) {
         </Alert>
       )}
 
+      {/* UPLOAD STATUS */}
+      {(uploading || uploadStatus) && (
+        <Card className="bg-blue-50 border-2 border-blue-500">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+              <div className="flex-1">
+                <p className="font-bold text-blue-900 mb-2">{uploadStatus}</p>
+                <div className="w-full bg-blue-200 rounded-full h-2">
+                  <div
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+                <p className="text-xs text-blue-700 mt-1">{progress}%</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* FORM */}
       <form onSubmit={handleSubmit} className="space-y-6">
         
-        {/* MEDIA (IMAGEN O VIDEO) */}
+        {/* IMÁGENES */}
         <Card className="border-2 border-gris-medio">
           <CardHeader>
             <CardTitle className="text-xl font-bold text-gris-oscuro flex items-center gap-3">
               <ImageIcon className="w-6 h-6 text-naranja" />
-              Contenido del Anuncio
-              <Badge className="bg-rojo-naranja/10 text-rojo-naranja border border-rojo-naranja/30 ml-2">
-                Requerido
+              Imágenes de la Propiedad
+              <Badge className="bg-naranja/10 text-naranja border border-naranja/30 ml-2">
+                {imagePreviews.length}/10
               </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             
-            {/* TABS IMAGEN/VIDEO */}
-            <Tabs value={mediaType} onValueChange={handleMediaTypeChange} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="imagen" className="flex items-center gap-2">
-                  <ImageIcon className="w-4 h-4" />
-                  Imagen
-                </TabsTrigger>
-                <TabsTrigger value="video" className="flex items-center gap-2">
-                  <Video className="w-4 h-4" />
-                  Video
-                </TabsTrigger>
-              </TabsList>
+            {/* ✅ INFO SOBRE IMAGEN PRINCIPAL */}
+            {imagePreviews.length > 0 && (
+              <div className="p-4 bg-blue-50 border-2 border-blue-200 rounded-xl">
+                <p className="text-xs font-bold text-blue-900 flex items-center gap-2">
+                  <Star className="w-4 h-4 text-yellow-500" />
+                  Haz clic en una imagen para establecerla como imagen principal
+                </p>
+              </div>
+            )}
 
-              {/* TAB IMAGEN */}
-              <TabsContent value="imagen" className="space-y-4">
-                {imagePreview ? (
-                  <div className="relative group">
-                    <div className="relative w-full h-96 rounded-xl overflow-hidden border-2 border-gris-medio group-hover:border-naranja transition-all">
-                      <Image 
-                        src={imagePreview} 
-                        alt="Preview"
-                        fill
-                        className="object-cover"
+            {/* PREVIEWS GRID */}
+            {imagePreviews.length > 0 && (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {imagePreviews.map((preview, index) => (
+                  <div 
+                    key={index} 
+                    className={`relative group rounded-xl overflow-hidden cursor-pointer transition-all ${
+                      formData.headerImageIndex === index ? 'ring-4 ring-naranja scale-95' : ''
+                    }`}
+                    onClick={() => setHeaderImage(index)}
+                  >
+                    {preview.startsWith('data:') ? (
+                      <img 
+                        src={preview} 
+                        alt={`Preview ${index + 1}`}
+                        className="w-full h-32 object-cover border-2 border-gris-medio group-hover:border-naranja transition-all"
                       />
-                    </div>
+                    ) : (
+                      <Image
+                        src={preview}
+                        alt={`Preview ${index + 1}`}
+                        width={300}
+                        height={200}
+                        className="w-full h-32 object-cover border-2 border-gris-medio group-hover:border-naranja transition-all"
+                      />
+                    )}
+                    
+                    {/* ✅ BADGE DE IMAGEN PRINCIPAL */}
+                    {formData.headerImageIndex === index && (
+                      <div className="absolute inset-0 bg-naranja/20 flex items-center justify-center">
+                        <Star className="w-8 h-8 text-naranja fill-naranja" />
+                      </div>
+                    )}
+
                     <button
                       type="button"
-                      onClick={removeImage}
-                      className="absolute top-4 right-4 p-2 bg-red-600 hover:bg-red-700 text-blanco rounded-full transition-all shadow-lg opacity-0 group-hover:opacity-100"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeImage(index);
+                      }}
+                      className="absolute top-2 right-2 p-1.5 bg-red-600 hover:bg-red-700 text-blanco rounded-full transition-all opacity-0 group-hover:opacity-100 shadow-lg"
                     >
-                      <X className="w-5 h-5" />
+                      <X className="w-4 h-4" />
                     </button>
-                    <Badge className="absolute bottom-4 left-4 bg-gradient-cta text-blanco font-bold shadow-naranja text-sm py-2 px-4">
-                      Imagen Principal
-                    </Badge>
-                  </div>
-                ) : (
-                  <label className="flex flex-col items-center justify-center w-full h-96 border-2 border-dashed border-gris-medio rounded-xl cursor-pointer hover:border-naranja hover:bg-naranja/5 transition-all group">
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                      <div className="w-20 h-20 bg-naranja/10 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-naranja/20 transition-all">
-                        <Upload className="w-10 h-10 text-naranja" />
-                      </div>
-                      <p className="mb-3 text-lg text-gris-oscuro font-bold">
-                        Click para subir o arrastra y suelta
-                      </p>
-                      <p className="text-sm text-gris-oscuro/70 mb-2">
-                        Formatos: PNG, JPG, JPEG
-                      </p>
-                      <p className="text-sm text-gris-oscuro/70">
-                        Tamaño máximo: 5MB
-                      </p>
-                      <Badge className="mt-4 bg-naranja/10 text-naranja border border-naranja/30">
-                        Recomendado: 1920x1080px
-                      </Badge>
-                    </div>
-                    <input 
-                      type="file" 
-                      className="hidden" 
-                      accept="image/*"
-                      onChange={handleImageChange}
-                    />
-                  </label>
-                )}
-              </TabsContent>
-
-              {/* TAB VIDEO */}
-              <TabsContent value="video" className="space-y-4">
-                <div>
-                  <Label htmlFor="video_url" className="text-gris-oscuro font-semibold mb-2 flex items-center gap-2">
-                    <LinkIcon className="w-4 h-4 text-naranja" />
-                    URL del Video
-                  </Label>
-                  <Input
-                    id="video_url"
-                    name="video_url"
-                    value={formData.video_url}
-                    onChange={handleChange}
-                    placeholder="Pega aquí el enlace de YouTube o Google Drive..."
-                    className="border-2 border-gris-medio focus:border-naranja h-12 rounded-xl"
-                  />
-                  
-                  {/* EJEMPLOS */}
-                  <div className="mt-3 p-4 bg-gris-claro rounded-lg space-y-2">
-                    <p className="text-xs font-semibold text-gris-oscuro mb-2">📌 Formatos aceptados:</p>
                     
-                    <div className="flex items-start gap-2">
-                      <Youtube className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <p className="text-xs font-semibold text-gris-oscuro">YouTube:</p>
-                        <code className="text-xs text-gris-oscuro/70 break-all">
-                          https://www.youtube.com/watch?v=...
-                        </code>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-start gap-2">
-                      <HardDrive className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <p className="text-xs font-semibold text-gris-oscuro">Google Drive:</p>
-                        <code className="text-xs text-gris-oscuro/70 break-all">
-                          https://drive.google.com/file/d/.../view
-                        </code>
-                      </div>
+                    <div className="absolute bottom-1 left-1 bg-black/70 text-white text-xs font-bold px-2 py-1 rounded">
+                      {index + 1}
                     </div>
                   </div>
+                ))}
+              </div>
+            )}
 
-                  {/* DETECTOR DE TIPO */}
-                  {formData.video_url && videoType && (
-                    <div className="mt-3">
-                      <Badge className={`${
-                        videoType === 'youtube' ? 'bg-red-100 text-red-700 border-red-300' :
-                        'bg-blue-100 text-blue-700 border-blue-300'
-                      } border-2`}>
-                        {videoType === 'youtube' ? (
-                          <>
-                            <Youtube className="w-3 h-3 mr-1" />
-                            Video de YouTube detectado
-                          </>
-                        ) : (
-                          <>
-                            <HardDrive className="w-3 h-3 mr-1" />
-                            Video de Google Drive detectado
-                          </>
-                        )}
-                      </Badge>
-                    </div>
-                  )}
+            {/* UPLOAD BUTTON */}
+            {imagePreviews.length < 10 && (
+              <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gris-medio rounded-xl cursor-pointer hover:border-naranja hover:bg-naranja/5 transition-all group">
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  <div className="w-16 h-16 bg-naranja/10 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-naranja/20 transition-all">
+                    <Upload className="w-8 h-8 text-naranja" />
+                  </div>
+                  <p className="mb-2 text-sm text-gris-oscuro font-semibold">
+                    Click para subir o arrastra y suelta
+                  </p>
+                  <p className="text-xs text-gris-oscuro/70">
+                    PNG, JPG, JPEG (MAX. 5MB por imagen)
+                  </p>
+                  <p className="text-xs text-naranja font-bold mt-2 flex items-center justify-center gap-1">
+                    <Zap className="w-3 h-3" />
+                    Se optimizarán a WebP automáticamente
+                  </p>
                 </div>
+                <input 
+                  type="file" 
+                  className="hidden" 
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageChange}
+                  disabled={uploading}
+                />
+              </label>
+            )}
 
-                {/* PREVIEW VIDEO */}
-                {embedUrl && (
-                  <div className="relative w-full rounded-xl overflow-hidden border-2 border-naranja bg-gris-oscuro">
-                    <div className="aspect-video">
-                      <iframe
-                        className="w-full h-full"
-                        src={embedUrl}
-                        title="Video preview"
-                        frameBorder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                      />
-                    </div>
-                    <Badge className="absolute bottom-4 left-4 bg-gradient-cta text-blanco font-bold shadow-naranja text-sm py-2 px-4">
-                      <Video className="w-4 h-4 mr-1" />
-                      Video Principal
-                    </Badge>
-                  </div>
-                )}
-
-                {formData.video_url && !videoType && (
-                  <Alert className="border-2 bg-yellow-50 border-yellow-500">
-                    <AlertCircle className="h-5 w-5 text-yellow-600" />
-                    <AlertDescription className="font-semibold ml-2 text-yellow-800">
-                      <div className="font-bold mb-1">URL no reconocida</div>
-                      <div className="text-sm font-normal">
-                        Asegúrate de usar un enlace de YouTube o Google Drive válido
-                      </div>
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </TabsContent>
-            </Tabs>
+            {imagePreviews.length === 0 && (
+              <p className="text-sm text-gris-oscuro/70 text-center py-2">
+                💡 La primera imagen será la imagen principal de la propiedad
+              </p>
+            )}
           </CardContent>
         </Card>
 
-        {/* INFORMACIÓN */}
+        {/* INFORMACIÓN BÁSICA */}
         <Card className="border-2 border-gris-medio">
           <CardHeader>
             <CardTitle className="text-xl font-bold text-gris-oscuro flex items-center gap-3">
-              <FileText className="w-6 h-6 text-naranja" />
-              Información del Anuncio
+              <Home className="w-6 h-6 text-naranja" />
+              Información Básica
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
             
             {/* TÍTULO */}
             <div>
-              <Label htmlFor="titulo" className="text-gris-oscuro font-semibold mb-2 flex items-center gap-2">
-                Título del Proyecto
-                <span className="text-rojo-naranja">*</span>
+              <Label htmlFor="titulo" className="text-gris-oscuro font-semibold mb-2">
+                Título <span className="text-rojo-naranja">*</span>
               </Label>
               <Input
                 id="titulo"
                 name="titulo"
                 value={formData.titulo}
                 onChange={handleChange}
-                placeholder="Ej: Avance Proyecto Residencial Las Flores"
+                placeholder="Ej: Casa moderna en zona residencial"
                 required
-                maxLength={100}
                 className="border-2 border-gris-medio focus:border-naranja h-12 rounded-xl"
               />
               <p className="text-xs text-gris-oscuro/70 mt-2">
-                {formData.titulo.length}/100 caracteres
+                💡 Carpeta en R2: <span className="font-bold text-naranja">/propiedades/{createSlug(formData.titulo)}/</span>
               </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              
+              {/* TIPO */}
+              <div>
+                <Label htmlFor="tipo" className="text-gris-oscuro font-semibold mb-2">
+                  Tipo de Propiedad <span className="text-rojo-naranja">*</span>
+                </Label>
+                <Select value={formData.tipo} onValueChange={handleSelectChange}>
+                  <SelectTrigger className="border-2 border-gris-medio focus:border-naranja h-12 rounded-xl bg-blanco">
+                    <Building2 className="w-5 h-5 text-naranja mr-2" />
+                    <SelectValue placeholder="Selecciona un tipo" />
+                  </SelectTrigger>
+                  <SelectContent 
+                    className="!bg-blanco !opacity-100 border-2 border-gris-medio shadow-2xl"
+                    style={{
+                      backgroundColor: '#FFFFFF',
+                      backdropFilter: 'none',
+                      opacity: 1
+                    }}
+                  >
+                    <SelectItem value="Casa">Casa</SelectItem>
+                    <SelectItem value="Apartamento">Apartamento</SelectItem>
+                    <SelectItem value="Terreno">Terreno</SelectItem>
+                    <SelectItem value="Local Comercial">Local Comercial</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* PRECIO */}
+              <div>
+                <Label htmlFor="precio" className="text-gris-oscuro font-semibold mb-2">
+                  Precio (Q) <span className="text-rojo-naranja">*</span>
+                </Label>
+                <div className="relative">
+                  <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-amarillo-dorado" />
+                  <Input
+                    id="precio"
+                    type="number"
+                    name="precio"
+                    value={formData.precio}
+                    onChange={handleChange}
+                    placeholder="1500000"
+                    step="0.01"
+                    required
+                    className="border-2 border-gris-medio focus:border-naranja h-12 rounded-xl pl-12"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* UBICACIÓN */}
+            <div>
+              <Label htmlFor="ubicacion" className="text-gris-oscuro font-semibold mb-2">
+                Ubicación <span className="text-rojo-naranja">*</span>
+              </Label>
+              <div className="relative">
+                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-naranja" />
+                <Input
+                  id="ubicacion"
+                  name="ubicacion"
+                  value={formData.ubicacion}
+                  onChange={handleChange}
+                  placeholder="Zona 1, Quetzaltenango"
+                  required
+                  className="border-2 border-gris-medio focus:border-naranja h-12 rounded-xl pl-12"
+                />
+              </div>
             </div>
 
             {/* DESCRIPCIÓN */}
             <div>
               <Label htmlFor="descripcion" className="text-gris-oscuro font-semibold mb-2">
-                Descripción (Opcional)
+                Descripción
               </Label>
-              <Textarea
-                id="descripcion"
-                name="descripcion"
-                value={formData.descripcion}
-                onChange={handleChange}
-                placeholder="Agrega detalles sobre el avance o características del proyecto..."
-                rows={5}
-                maxLength={500}
-                className="border-2 border-gris-medio focus:border-naranja rounded-xl resize-none"
-              />
-              <p className="text-xs text-gris-oscuro/70 mt-2">
-                {formData.descripcion.length}/500 caracteres
-              </p>
-            </div>
-
-            {/* ESTADO */}
-            <div className={`${
-              formData.activo 
-                ? 'bg-gradient-to-r from-green-50 to-green-100/50 border-green-200' 
-                : 'bg-gradient-to-r from-red-50 to-red-100/50 border-red-200'
-            } border-2 rounded-xl p-5`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                    formData.activo ? 'bg-green-500' : 'bg-red-500'
-                  }`}>
-                    {formData.activo ? (
-                      <CheckCircle className="w-6 h-6 text-blanco" />
-                    ) : (
-                      <X className="w-6 h-6 text-blanco" />
-                    )}
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-gris-oscuro text-lg">
-                      Estado del Anuncio
-                    </h4>
-                    <p className="text-sm text-gris-oscuro/70">
-                      {formData.activo 
-                        ? 'El anuncio está visible públicamente' 
-                        : 'El anuncio está oculto'}
-                    </p>
-                  </div>
-                </div>
-                <Switch
-                  checked={formData.activo}
-                  onCheckedChange={handleSwitchChange}
-                  className="data-[state=checked]:bg-green-500"
+              <div className="relative">
+                <FileText className="absolute left-4 top-4 w-5 h-5 text-naranja" />
+                <Textarea
+                  id="descripcion"
+                  name="descripcion"
+                  value={formData.descripcion}
+                  onChange={handleChange}
+                  placeholder="Describe las características principales de la propiedad..."
+                  rows={4}
+                  className="border-2 border-gris-medio focus:border-naranja rounded-xl pl-12 resize-none"
                 />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* PREVIEW CARD */}
-        <Card className="border-2 border-naranja/50 bg-gradient-to-br from-naranja/5 to-amarillo-dorado/5">
+        {/* ESTADO Y CÓDIGO */}
+        <Card className="border-2 border-gris-medio">
           <CardHeader>
             <CardTitle className="text-xl font-bold text-gris-oscuro flex items-center gap-3">
-              <Newspaper className="w-6 h-6 text-naranja" />
-              Vista Previa
+              <Building2 className="w-6 h-6 text-naranja" />
+              Estado y Código
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="bg-blanco rounded-xl border-2 border-gris-medio overflow-hidden">
-              {/* Preview Media */}
-              <div className="relative bg-gris-medio">
-                {mediaType === 'imagen' && imagePreview ? (
-                  <div className="relative h-64">
-                    <Image 
-                      src={imagePreview} 
-                      alt="Preview"
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                ) : mediaType === 'video' && embedUrl ? (
-                  <div className="aspect-video">
-                    <iframe
-                      className="w-full h-full"
-                      src={embedUrl}
-                      title="Video preview"
-                      frameBorder="0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
-                  </div>
-                ) : (
-                  <div className="w-full h-48 flex items-center justify-center">
-                    {mediaType === 'imagen' ? (
-                      <ImageIcon className="w-16 h-16 text-gris-oscuro/30" />
-                    ) : (
-                      <Video className="w-16 h-16 text-gris-oscuro/30" />
-                    )}
-                  </div>
-                )}
-                <Badge className={`absolute top-3 right-3 font-bold ${
-                  formData.activo 
-                    ? 'bg-green-500 text-blanco' 
-                    : 'bg-red-500 text-blanco'
-                }`}>
-                  {formData.activo ? 'Activo' : 'Inactivo'}
-                </Badge>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               
-              {/* Preview Content */}
-              <div className="p-4">
-                <h3 className="text-lg font-bold text-gris-oscuro mb-2">
-                  {formData.titulo || 'Título del anuncio'}
-                </h3>
-                {formData.descripcion && (
-                  <p className="text-sm text-gris-oscuro/70">
-                    {formData.descripcion}
-                  </p>
-                )}
+              {/* ESTADO DE VENTA */}
+              <div>
+                <Label htmlFor="VentaPreventa" className="text-gris-oscuro font-semibold mb-2">
+                  Estado
+                </Label>
+                <Select value={formData.VentaPreventa} onValueChange={handleVentaPreventa}>
+                  <SelectTrigger className="border-2 border-gris-medio focus:border-naranja h-12 rounded-xl bg-blanco">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="!bg-blanco border-2 border-gris-medio shadow-2xl">
+                    <SelectItem value="Venta">💰 Venta</SelectItem>
+                    <SelectItem value="Preventa">🔄 Preventa</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* CÓDIGO */}
+              <div>
+                <Label htmlFor="codigo" className="text-gris-oscuro font-semibold mb-2">
+                  Código
+                </Label>
+                <Input
+                  id="codigo"
+                  name="codigo"
+                  value={formData.codigo}
+                  onChange={handleChange}
+                  placeholder="Ej: PROP-001"
+                  className="border-2 border-gris-medio focus:border-naranja h-12 rounded-xl"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* CARACTERÍSTICAS */}
+        <Card className="border-2 border-gris-medio">
+          <CardHeader>
+            <CardTitle className="text-xl font-bold text-gris-oscuro flex items-center gap-3">
+              <Maximize className="w-6 h-6 text-naranja" />
+              Características
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              
+              {/* HABITACIONES */}
+              <div>
+                <Label htmlFor="habitaciones" className="text-gris-oscuro font-semibold mb-2">
+                  Habitaciones
+                </Label>
+                <div className="relative">
+                  <Bed className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-naranja" />
+                  <Input
+                    id="habitaciones"
+                    type="number"
+                    name="habitaciones"
+                    value={formData.habitaciones}
+                    onChange={handleChange}
+                    placeholder="3"
+                    min="0"
+                    className="border-2 border-gris-medio focus:border-naranja h-12 rounded-xl pl-12"
+                  />
+                </div>
+              </div>
+
+              {/* BAÑOS */}
+              <div>
+                <Label htmlFor="banos" className="text-gris-oscuro font-semibold mb-2">
+                  Baños
+                </Label>
+                <div className="relative">
+                  <Bath className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-naranja" />
+                  <Input
+                    id="banos"
+                    type="number"
+                    name="banos"
+                    value={formData.banos}
+                    onChange={handleChange}
+                    placeholder="2"
+                    min="0"
+                    className="border-2 border-gris-medio focus:border-naranja h-12 rounded-xl pl-12"
+                  />
+                </div>
+              </div>
+
+              {/* METROS² */}
+              <div>
+                <Label htmlFor="metros2" className="text-gris-oscuro font-semibold mb-2">
+                  Metros²
+                </Label>
+                <div className="relative">
+                  <Maximize className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-naranja" />
+                  <Input
+                    id="metros2"
+                    type="number"
+                    name="metros2"
+                    value={formData.metros2}
+                    onChange={handleChange}
+                    placeholder="150"
+                    min="0"
+                    className="border-2 border-gris-medio focus:border-naranja h-12 rounded-xl pl-12"
+                  />
+                </div>
               </div>
             </div>
           </CardContent>
@@ -665,7 +755,7 @@ export default function EditarAnuncioPage({ params }) {
 
         {/* ACTIONS */}
         <div className="flex gap-4 justify-end">
-          <Link href="/admin/anuncios">
+          <Link href="/admin/propiedades">
             <Button
               type="button"
               variant="outline"
@@ -676,18 +766,18 @@ export default function EditarAnuncioPage({ params }) {
           </Link>
           <Button
             type="submit"
-            disabled={loading}
-            className="btn-cta px-8 py-6 rounded-xl font-bold text-base shadow-naranja"
+            disabled={loading || uploading}
+            className="btn-cta px-8 py-6 rounded-xl font-bold text-base shadow-naranja disabled:opacity-50"
           >
-            {loading ? (
+            {loading || uploading ? (
               <>
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                Guardando...
+                Procesando...
               </>
             ) : (
               <>
-                <Save className="w-5 h-5 mr-2" />
-                Guardar Cambios
+                <Home className="w-5 h-5 mr-2" />
+                Actualizar Propiedad
               </>
             )}
           </Button>

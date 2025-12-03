@@ -36,6 +36,7 @@ import { cn } from '@/lib/utils';
 export default function ContactosPage() {
   const [contactos, setContactos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingDetalles, setLoadingDetalles] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterEstado, setFilterEstado] = useState('all');
   const [selectedContacto, setSelectedContacto] = useState(null);
@@ -56,15 +57,16 @@ export default function ContactosPage() {
       const { data, error } = await supabase
         .from('contactos')
         .select(`
-          *,
-          propiedades (
-            id,
-            titulo,
-            tipo,
-            precio
-          )
+          id,
+          nombre,
+          email,
+          telefono,
+          asunto,
+          estado,
+          created_at
         `)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(100);
 
       if (error) throw error;
       setContactos(data || []);
@@ -74,6 +76,34 @@ export default function ContactosPage() {
       showAlert('error', 'Error al cargar contactos', error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Cargar detalles completos solo cuando abres el modal
+  const loadContactoDetalles = async (id) => {
+    setLoadingDetalles(true);
+    try {
+      const { data, error } = await supabase
+        .from('contactos')
+        .select(`
+          *,
+          propiedades:propiedad_id (
+            id,
+            titulo,
+            tipo,
+            precio
+          )
+        `)
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      setSelectedContacto(data);
+    } catch (error) {
+      console.error('Error cargando detalles:', error);
+      showAlert('error', 'Error al cargar detalles', error.message);
+    } finally {
+      setLoadingDetalles(false);
     }
   };
 
@@ -322,7 +352,6 @@ export default function ContactosPage() {
               <tr>
                 <th className="text-left px-6 py-4 text-sm font-bold text-gris-oscuro">Cliente</th>
                 <th className="text-left px-6 py-4 text-sm font-bold text-gris-oscuro">Asunto</th>
-                <th className="text-left px-6 py-4 text-sm font-bold text-gris-oscuro">Propiedad</th>
                 <th className="text-left px-6 py-4 text-sm font-bold text-gris-oscuro">Estado</th>
                 <th className="text-left px-6 py-4 text-sm font-bold text-gris-oscuro">Fecha</th>
                 <th className="text-right px-6 py-4 text-sm font-bold text-gris-oscuro">Acciones</th>
@@ -331,7 +360,7 @@ export default function ContactosPage() {
             <tbody>
               {filteredContactos.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="text-center py-12">
+                  <td colSpan="5" className="text-center py-12">
                     <MessageSquare className="w-12 h-12 text-gris-oscuro/30 mx-auto mb-3" />
                     <p className="text-gris-oscuro/70 font-semibold">No se encontraron contactos</p>
                   </td>
@@ -352,21 +381,6 @@ export default function ContactosPage() {
                     </td>
                     <td className="px-6 py-4">
                       <p className="font-medium text-gris-oscuro line-clamp-1">{contacto.asunto}</p>
-                      <p className="text-sm text-gris-oscuro/70 line-clamp-1">{contacto.mensaje}</p>
-                    </td>
-                    <td className="px-6 py-4">
-                      {contacto.propiedades ? (
-                        <div>
-                          <p className="font-medium text-gris-oscuro text-sm line-clamp-1">
-                            {contacto.propiedades.titulo}
-                          </p>
-                          <p className="text-xs text-gris-oscuro/70">
-                            {contacto.propiedades.tipo} - <span className="text-naranja font-bold">Q{contacto.propiedades.precio?.toLocaleString()}</span>
-                          </p>
-                        </div>
-                      ) : (
-                        <span className="text-sm text-gris-oscuro/70">Sin propiedad</span>
-                      )}
                     </td>
                     <td className="px-6 py-4">
                       <select
@@ -398,7 +412,7 @@ export default function ContactosPage() {
                         <Button
                           variant="outline"
                           size="icon"
-                          onClick={() => setSelectedContacto(contacto)}
+                          onClick={() => loadContactoDetalles(contacto.id)}
                           className="border-2 border-gris-medio hover:border-blue-500 hover:bg-blue-50 text-blue-600 rounded-xl"
                         >
                           <Eye className="w-4 h-4" />
@@ -442,112 +456,118 @@ export default function ContactosPage() {
               </div>
             </div>
 
-            <CardContent className="p-6 space-y-6">
-              {/* CLIENTE */}
-              <div>
-                <h4 className="font-bold text-gris-oscuro mb-3 flex items-center gap-2 text-lg">
-                  <User className="w-5 h-5 text-naranja" />
-                  Información del Cliente
-                </h4>
-                <Card className="bg-naranja/5 border-2 border-naranja/20">
-                  <CardContent className="p-4 space-y-2 text-sm">
-                    <p><span className="font-semibold text-gris-oscuro">Nombre:</span> <span className="text-gris-oscuro/80">{selectedContacto.nombre}</span></p>
-                    <p><span className="font-semibold text-gris-oscuro">Email:</span> <span className="text-gris-oscuro/80">{selectedContacto.email}</span></p>
-                    <p><span className="font-semibold text-gris-oscuro">Teléfono:</span> <span className="text-gris-oscuro/80">{selectedContacto.telefono}</span></p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* MENSAJE */}
-              <div>
-                <h4 className="font-bold text-gris-oscuro mb-3 flex items-center gap-2 text-lg">
-                  <MessageSquare className="w-5 h-5 text-naranja" />
-                  Mensaje
-                </h4>
-                <Card className="bg-amarillo-dorado/5 border-2 border-amarillo-dorado/20">
-                  <CardContent className="p-4">
-                    <p className="font-semibold text-gris-oscuro mb-2">{selectedContacto.asunto}</p>
-                    <p className="text-gris-oscuro/80 whitespace-pre-wrap text-sm">{selectedContacto.mensaje}</p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* PROPIEDAD */}
-              {selectedContacto.propiedades && (
+            {loadingDetalles ? (
+              <CardContent className="p-6 flex justify-center items-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-naranja" />
+              </CardContent>
+            ) : (
+              <CardContent className="p-6 space-y-6">
+                {/* CLIENTE */}
                 <div>
                   <h4 className="font-bold text-gris-oscuro mb-3 flex items-center gap-2 text-lg">
-                    <Home className="w-5 h-5 text-naranja" />
-                    Propiedad de Interés
+                    <User className="w-5 h-5 text-naranja" />
+                    Información del Cliente
                   </h4>
-                  <Card className="bg-blue-50 border-2 border-blue-200">
-                    <CardContent className="p-4">
-                      <p className="font-bold text-gris-oscuro text-lg mb-1">{selectedContacto.propiedades.titulo}</p>
-                      <p className="text-gris-oscuro/80 text-sm">
-                        {selectedContacto.propiedades.tipo} - 
-                        <span className="font-extrabold text-naranja ml-1">
-                          Q{selectedContacto.propiedades.precio?.toLocaleString()}
-                        </span>
-                      </p>
+                  <Card className="bg-naranja/5 border-2 border-naranja/20">
+                    <CardContent className="p-4 space-y-2 text-sm">
+                      <p><span className="font-semibold text-gris-oscuro">Nombre:</span> <span className="text-gris-oscuro/80">{selectedContacto.nombre}</span></p>
+                      <p><span className="font-semibold text-gris-oscuro">Email:</span> <span className="text-gris-oscuro/80">{selectedContacto.email}</span></p>
+                      <p><span className="font-semibold text-gris-oscuro">Teléfono:</span> <span className="text-gris-oscuro/80">{selectedContacto.telefono}</span></p>
                     </CardContent>
                   </Card>
                 </div>
-              )}
 
-              {/* ESTADO Y FECHA */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* MENSAJE */}
                 <div>
-                  <h4 className="font-bold text-gris-oscuro mb-3">Estado</h4>
-                  <select
-                    value={selectedContacto.estado}
-                    onChange={(e) => handleChangeEstado(selectedContacto.id, e.target.value)}
-                    className={cn(
-                      'w-full px-4 py-3 rounded-xl text-blanco font-bold border-0 shadow-md cursor-pointer',
-                      getEstadoBadge(selectedContacto.estado)
-                    )}
-                  >
-                    <option value="nuevo">Nuevo</option>
-                    <option value="contactado">Contactado</option>
-                    <option value="resuelto">Resuelto</option>
-                    <option value="cancelado">Cancelado</option>
-                  </select>
-                </div>
-                <div>
-                  <h4 className="font-bold text-gris-oscuro mb-3">Fecha de Contacto</h4>
-                  <Card className="bg-gris-claro border-2 border-gris-medio">
+                  <h4 className="font-bold text-gris-oscuro mb-3 flex items-center gap-2 text-lg">
+                    <MessageSquare className="w-5 h-5 text-naranja" />
+                    Mensaje
+                  </h4>
+                  <Card className="bg-amarillo-dorado/5 border-2 border-amarillo-dorado/20">
                     <CardContent className="p-4">
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-5 h-5 text-naranja" />
-                        <p className="text-gris-oscuro font-semibold">
-                          {new Date(selectedContacto.created_at).toLocaleString('es-GT')}
+                      <p className="font-semibold text-gris-oscuro mb-2">{selectedContacto.asunto}</p>
+                      <p className="text-gris-oscuro/80 whitespace-pre-wrap text-sm">{selectedContacto.mensaje}</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* PROPIEDAD */}
+                {selectedContacto.propiedades && (
+                  <div>
+                    <h4 className="font-bold text-gris-oscuro mb-3 flex items-center gap-2 text-lg">
+                      <Home className="w-5 h-5 text-naranja" />
+                      Propiedad de Interés
+                    </h4>
+                    <Card className="bg-blue-50 border-2 border-blue-200">
+                      <CardContent className="p-4">
+                        <p className="font-bold text-gris-oscuro text-lg mb-1">{selectedContacto.propiedades.titulo}</p>
+                        <p className="text-gris-oscuro/80 text-sm">
+                          {selectedContacto.propiedades.tipo} - 
+                          <span className="font-extrabold text-naranja ml-1">
+                            Q{selectedContacto.propiedades.precio?.toLocaleString()}
+                          </span>
                         </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
 
-              {/* ACCIONES RÁPIDAS */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-4">
-                <a
-                  href={`mailto:${selectedContacto.email}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Button className="w-full bg-blue-500 hover:bg-blue-600 text-blanco rounded-xl font-bold py-6 shadow-lg">
-                    <Mail className="w-5 h-5 mr-2" />
-                    Enviar Email
-                  </Button>
-                </a>
-                <a
-                  href={`tel:${selectedContacto.telefono}`}
-                >
-                  <Button className="w-full bg-green-500 hover:bg-green-600 text-blanco rounded-xl font-bold py-6 shadow-lg">
-                    <Phone className="w-5 h-5 mr-2" />
-                    Llamar
-                  </Button>
-                </a>
-              </div>
-            </CardContent>
+                {/* ESTADO Y FECHA */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="font-bold text-gris-oscuro mb-3">Estado</h4>
+                    <select
+                      value={selectedContacto.estado}
+                      onChange={(e) => handleChangeEstado(selectedContacto.id, e.target.value)}
+                      className={cn(
+                        'w-full px-4 py-3 rounded-xl text-blanco font-bold border-0 shadow-md cursor-pointer',
+                        getEstadoBadge(selectedContacto.estado)
+                      )}
+                    >
+                      <option value="nuevo">Nuevo</option>
+                      <option value="contactado">Contactado</option>
+                      <option value="resuelto">Resuelto</option>
+                      <option value="cancelado">Cancelado</option>
+                    </select>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-gris-oscuro mb-3">Fecha de Contacto</h4>
+                    <Card className="bg-gris-claro border-2 border-gris-medio">
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-5 h-5 text-naranja" />
+                          <p className="text-gris-oscuro font-semibold text-sm">
+                            {new Date(selectedContacto.created_at).toLocaleString('es-GT')}
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+
+                {/* ACCIONES RÁPIDAS */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-4">
+                  <a
+                    href={`mailto:${selectedContacto.email}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Button className="w-full bg-blue-500 hover:bg-blue-600 text-blanco rounded-xl font-bold py-6 shadow-lg">
+                      <Mail className="w-5 h-5 mr-2" />
+                      Enviar Email
+                    </Button>
+                  </a>
+                  <a
+                    href={`tel:${selectedContacto.telefono}`}
+                  >
+                    <Button className="w-full bg-green-500 hover:bg-green-600 text-blanco rounded-xl font-bold py-6 shadow-lg">
+                      <Phone className="w-5 h-5 mr-2" />
+                      Llamar
+                    </Button>
+                  </a>
+                </div>
+              </CardContent>
+            )}
           </Card>
         </div>
       )}

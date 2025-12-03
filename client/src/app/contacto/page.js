@@ -141,15 +141,15 @@ export default function ContactoPage() {
     {
       icon: Phone,
       title: 'Teléfono',
-      content: '+502 4000 0000',
+      content: '+502 5556 6379',
       link: 'tel:+50240000000',
       color: 'text-naranja'
     },
     {
       icon: Mail,
       title: 'Correo Electrónico',
-      content: 'contacto@multinmuebles.com',
-      link: 'mailto:contacto@multinmuebles.com',
+      content: 'multiinmuebles1974@gmail.com',
+      link: 'mailto:multiinmuebles1974@gmail.com',
       color: 'text-rojo-naranja'
     },
     {

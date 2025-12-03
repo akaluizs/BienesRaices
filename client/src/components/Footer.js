@@ -67,11 +67,11 @@ export default function Footer() {
               </li>
               <li>
                 <Link 
-                  href="/anuncios" 
+                  href="/preventa" 
                   className="footer-link flex items-center gap-2 text-sm group"
                 >
                   <span className="text-naranja group-hover:translate-x-1 transition-transform">→</span>
-                  Anuncios
+                  Preventas
                 </Link>
               </li>
               <li>
@@ -106,10 +106,10 @@ export default function Footer() {
                 <div>
                   <p className="text-gris-medio text-xs font-medium mb-1">Teléfono</p>
                   <a 
-                    href="tel:+50240000000" 
-                    className="phone-number hover:text-naranja transition-colors"
+                    href="tel:+50255566379" 
+                    className="text-blanco hover:text-naranja transition-colors text-sm"
                   >
-                    +502 4000 0000
+                    +502 5556 6379
                   </a>
                 </div>
               </div>
@@ -120,10 +120,10 @@ export default function Footer() {
                 <div>
                   <p className="text-gris-medio text-xs font-medium mb-1">Correo Electrónico</p>
                   <a 
-                    href="mailto:contacto@multinmuebles.com" 
+                    href="mailto:multiinmuebles1974@gmail.com" 
                     className="text-blanco hover:text-naranja transition-colors text-sm"
                   >
-                    contacto@multinmuebles.com
+                    multiinmuebles1974@gmail.com
                   </a>
                 </div>
               </div>
@@ -153,7 +153,7 @@ export default function Footer() {
                 style={{ border: 0 }}
                 allowFullScreen=""
                 loading="lazy"
-                title="Ubicación Multinmuebles"
+                title="Ubicación Multiinmuebles"
               ></iframe>
             </div>
           </div>

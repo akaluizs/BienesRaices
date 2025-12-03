@@ -1,6 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { 
   Award, 
   Target, 
@@ -14,12 +16,54 @@ import {
   Phone,
   Mail,
   MapPin,
-  Handshake
+  Handshake,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
 export default function NosotrosPage() {
+
+  const [currentTeamIndex, setCurrentTeamIndex] = useState(0);
+
+  const teamMembers = [
+    {
+      id: 1,
+      name: "Licda. Ana del Carmen López",
+      role: "Gerente General",
+      image: "/images/Nosotros-1.webp",
+      description: "Especialista en propiedades comerciales"
+    },
+    {
+      id: 2,
+      name: "Oscar Roman Carlos Schaad",
+      role: "Gerente General",
+      image: "/images/Hero.webp",
+      description: "Especialista en propiedades comerciales"
+    },
+  ];
+
+  const nextSlide = () => {
+    setCurrentTeamIndex((prev) => (prev + 1) % teamMembers.length);
+  };
+
+  const prevSlide = () => {
+    setCurrentTeamIndex((prev) =>
+      prev === 0 ? teamMembers.length - 1 : prev - 1
+    );
+  };
+
+  // Determinar cuántos miembros mostrar según la cantidad total
+  const getVisibleCount = () => {
+    if (teamMembers.length === 1) return 1;
+    if (teamMembers.length <= 3) return 2;
+    return 4;
+  };
+
+  const visibleMembers = getVisibleCount();
+  const getVisibleIndex = (offset) => (currentTeamIndex + offset) % teamMembers.length;
+
   
   const stats = [
     {
@@ -340,8 +384,125 @@ export default function NosotrosPage() {
         </div>
       </section>
 
+     {/* EQUIPO - CARRUSEL RESPONSIVE */}
+<section className="py-20 bg-blanco">
+  <div className="container mx-auto px-4">
+    
+    <div className="text-center mb-16">
+      <h2 className="text-4xl md:text-5xl font-bold text-gris-oscuro mb-4">
+        Nuestro Equipo De Trabajo
+      </h2>
+      <p className="text-gris-oscuro/70 text-lg">
+        Profesionales dedicados a tu satisfacción
+      </p>
+    </div>
+
+    {/* CARRUSEL - DISEÑO MEJORADO */}
+    <div className="max-w-6xl mx-auto">
+      
+      {/* Tarjeta del miembro actual */}
+      <Card className="border-2 border-gris-medio hover:border-naranja transition-all hover:shadow-xl group overflow-hidden bg-transparent shadow-lg">
+        <CardContent className="p-0">
+          
+          {/* Container principal - Más ancho */}
+          <div className="relative w-full h-[500px] md:h-[600px] overflow-hidden bg-gris-claro">
+            {/* Contenedor de imagen con márgenes laterales */}
+            <div className="relative w-full h-full max-w-4xl mx-auto px-4 md:px-8">
+              <Image
+                src={teamMembers[currentTeamIndex].image}
+                alt={teamMembers[currentTeamIndex].name}
+                fill
+                className="object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                priority
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 70vw"
+                style={{ objectPosition: 'center 20%' }}
+                onError={(e) => {
+                  e.target.src = "https://images.unsplash.com/photo-1502685104226-ee32379fefbe?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80";
+                }}
+              />
+              
+              {/* Overlay gradiente sutil */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent" />
+              
+              {/* Overlay hover */}
+              <div className="absolute inset-0 bg-naranja/0 group-hover:bg-naranja/5 transition-all duration-500" />
+            </div>
+
+            {/* Controles - Solo si hay más de 1 miembro */}
+            {teamMembers.length > 1 && (
+              <>
+                {/* Botón anterior - Izquierda */}
+                <button
+                  onClick={prevSlide}
+                  className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 w-12 h-12 md:w-14 md:h-14 rounded-full bg-blanco/90 hover:bg-blanco border-2 border-naranja hover:border-naranja transition-all flex items-center justify-center group/btn shadow-lg z-10"
+                  aria-label="Anterior"
+                >
+                  <ChevronLeft className="w-6 h-6 md:w-7 md:h-7 text-naranja group-hover/btn:scale-125 transition-transform" />
+                </button>
+
+                {/* Botón siguiente - Derecha */}
+                <button
+                  onClick={nextSlide}
+                  className="absolute right-4 md:right-6 top-1/2 -translate-y-1/2 w-12 h-12 md:w-14 md:h-14 rounded-full bg-blanco/90 hover:bg-blanco border-2 border-naranja hover:border-naranja transition-all flex items-center justify-center group/btn shadow-lg z-10"
+                  aria-label="Siguiente"
+                >
+                  <ChevronRight className="w-6 h-6 md:w-7 md:h-7 text-naranja group-hover/btn:scale-125 transition-transform" />
+                </button>
+
+                {/* Indicadores - Abajo al centro */}
+                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-blanco/80 backdrop-blur-md rounded-full px-4 py-3 z-10">
+                  {teamMembers.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentTeamIndex(index)}
+                      className={`rounded-full transition-all ${
+                        index === currentTeamIndex
+                          ? 'bg-naranja w-3 h-3'
+                          : 'bg-gris-medio hover:bg-gris-oscuro w-2 h-2'
+                      }`}
+                      aria-label={`Ir al miembro ${index + 1}`}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Información del miembro - Rediseñada */}
+          <div className="p-6 md:p-10 text-center bg-gradient-to-b from-blanco to-gris-claro/50">
+            <div className="max-w-3xl mx-auto">
+              <h3 className="text-2xl md:text-4xl font-bold text-gris-oscuro mb-3">
+                {teamMembers[currentTeamIndex].name}
+              </h3>
+              
+              <div className="inline-flex items-center gap-2 bg-naranja/10 text-naranja font-semibold text-sm md:text-lg px-6 py-2 rounded-full mb-4">
+                <span className="w-2 h-2 bg-naranja rounded-full"></span>
+                {teamMembers[currentTeamIndex].role}
+              </div>
+              
+              <p className="text-gris-oscuro/70 text-base md:text-lg leading-relaxed">
+                {teamMembers[currentTeamIndex].description}
+              </p>
+            </div>
+          </div>
+
+        </CardContent>
+      </Card>
+    </div>
+
+    {/* Información adicional del equipo */}
+    <div className="max-w-3xl mx-auto mt-12 text-center">
+      <p className="text-gris-oscuro/60 text-sm md:text-base">
+        Nuestro equipo combina experiencia local con atención personalizada para 
+        ofrecerte el mejor servicio inmobiliario en Quetzaltenango.
+      </p>
+    </div>
+
+  </div>
+</section>
+
       {/* CTA FINAL */}
-      <section className="py-20 bg-gradient-primary text-blanco">
+      <section className="py-6 bg-gradient-primary text-blanco">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             

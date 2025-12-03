@@ -2,30 +2,23 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
-import { 
-  ArrowLeft,
+import { useImageUpload } from '@/hooks/useImageUpload';
+import { createProperty } from '@/lib/actions/propertyActions';
+import Image from 'next/image';
+import {
+  Plus,
+  Loader2,
   Upload,
   X,
-  Loader2,
-  Home,
-  MapPin,
-  DollarSign,
-  Bed,
-  Bath,
-  Maximize,
-  FileText,
-  Image as ImageIcon,
-  Building2,
+  AlertCircle,
   CheckCircle,
-  AlertCircle
+  Home,
+  Zap,
+  Star,
 } from 'lucide-react';
-import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Select,
@@ -34,179 +27,203 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from '@/components/ui/badge';
 
 export default function NuevaPropiedadPage() {
   const router = useRouter();
+  const { processImage, uploading, progress } = useImageUpload();
   const [loading, setLoading] = useState(false);
-  const [imagePreviews, setImagePreviews] = useState([]);
   const [alert, setAlert] = useState(null);
+  const [uploadStatus, setUploadStatus] = useState('');
   const [formData, setFormData] = useState({
     titulo: '',
-    tipo: '',
-    precio: '',
-    ubicacion: '',
     descripcion: '',
+    ubicacion: '',
+    precio: '',
+    tipo: '',
+    metros2: '',
     habitaciones: '',
     banos: '',
-    metros2: '',
-    imagenes: []
+    VentaPreventa: 'Venta',
+    codigo: '',
+    imagenes: [],
+    imagenesPreview: [],
+    headerImageIndex: 0, // ✅ Índice de imagen principal
   });
 
-  const showAlert = (type, message, description = '') => {
-    setAlert({ type, message, description });
+  const showAlert = (type, message) => {
+    setAlert({ type, message });
     setTimeout(() => setAlert(null), 4000);
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+  // ✅ Crear slug seguro del título
+  const createSlug = (text) => {
+    return text
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
   };
 
-  const handleSelectChange = (value) => {
-    setFormData(prev => ({
-      ...prev,
-      tipo: value
-    }));
-  };
+  // ✅ Manejar selección de imágenes múltiples
+  const handleImagesChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
 
-  const handleImageChange = (e) => {
-    const files = Array.from(e.target.files);
-    
-    if (files.length === 0) return;
-
-    // Validar cantidad máxima de imágenes
-    if (imagePreviews.length + files.length > 10) {
-      showAlert('warning', 'Máximo 10 imágenes permitidas', 
-        `Ya tienes ${imagePreviews.length} imágenes. Puedes agregar ${10 - imagePreviews.length} más.`);
+    // Validar cantidad máxima (10 imágenes)
+    if (formData.imagenes.length + files.length > 10) {
+      showAlert('error', 'Máximo 10 imágenes por propiedad');
       return;
     }
 
-    // Validar tamaño de cada archivo
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    for (let file of files) {
-      if (file.size > maxSize) {
-        showAlert('error', 'Imagen demasiado grande', 
-          `${file.name} excede el tamaño máximo de 5MB`);
-        return;
-      }
-    }
+    const newPreviews = [];
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        newPreviews.push({
+          file,
+          preview: event.target.result,
+        });
 
-    // Convertir todas las imágenes a base64
-    const promises = files.map(file => {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
+        if (newPreviews.length === files.length) {
+          setFormData(prev => ({
+            ...prev,
+            imagenes: [...prev.imagenes, ...files],
+            imagenesPreview: [...prev.imagenesPreview, ...newPreviews],
+          }));
+        }
+      };
+      reader.readAsDataURL(file);
     });
-
-    Promise.all(promises)
-      .then(base64Images => {
-        setImagePreviews(prev => [...prev, ...base64Images]);
-        setFormData(prev => ({
-          ...prev,
-          imagenes: [...prev.imagenes, ...base64Images]
-        }));
-        
-        showAlert('success', `${files.length} imagen(es) agregada(s)`);
-      })
-      .catch(error => {
-        console.error('Error procesando imágenes:', error);
-        showAlert('error', 'Error al procesar las imágenes');
-      });
   };
 
-  const removeImage = (index) => {
-    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+  // ✅ Remover imagen individual
+  const handleRemoveImage = (index) => {
+    setFormData(prev => {
+      const nuevaPreview = prev.imagenesPreview.filter((_, i) => i !== index);
+      const nuevasImagenes = prev.imagenes.filter((_, i) => i !== index);
+      
+      // Si eliminamos la imagen principal, seleccionar la primera
+      let nuevoIndice = prev.headerImageIndex;
+      if (nuevoIndice >= nuevasImagenes.length) {
+        nuevoIndice = Math.max(0, nuevasImagenes.length - 1);
+      }
+
+      return {
+        ...prev,
+        imagenes: nuevasImagenes,
+        imagenesPreview: nuevaPreview,
+        headerImageIndex: nuevoIndice,
+      };
+    });
+  };
+
+  // ✅ Establecer imagen como principal
+  const setHeaderImage = (index) => {
     setFormData(prev => ({
       ...prev,
-      imagenes: prev.imagenes.filter((_, i) => i !== index)
+      headerImageIndex: index,
     }));
-    showAlert('success', 'Imagen eliminada');
   };
 
+  // ✅ Guardar propiedad
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Validaciones
-    if (!formData.titulo || !formData.tipo || !formData.precio || !formData.ubicacion) {
-      showAlert('error', 'Campos incompletos', 
-        'Por favor completa todos los campos obligatorios marcados con *');
+
+    if (!formData.titulo.trim()) {
+      showAlert('error', 'El título es obligatorio');
       return;
     }
 
     if (formData.imagenes.length === 0) {
-      showAlert('error', 'Se requiere al menos una imagen', 
-        'Agrega al menos una imagen de la propiedad');
+      showAlert('error', 'Debes agregar al menos una imagen');
+      return;
+    }
+
+    if (!formData.tipo) {
+      showAlert('error', 'Selecciona un tipo de propiedad');
       return;
     }
 
     setLoading(true);
-
     try {
-      const { data, error } = await supabase
-        .from('propiedades')
-        .insert([{
-          titulo: formData.titulo,
-          tipo: formData.tipo,
-          precio: parseFloat(formData.precio),
-          ubicacion: formData.ubicacion,
-          descripcion: formData.descripcion || null,
-          habitaciones: parseInt(formData.habitaciones) || null,
-          banos: parseInt(formData.banos) || null,
-          metros2: parseInt(formData.metros2) || null,
-          imagenes: formData.imagenes
-        }])
-        .select();
+      const slug = createSlug(formData.titulo);
+      const imageUrls = [];
 
-      if (error) throw error;
+      // Subir cada imagen a R2
+      for (let i = 0; i < formData.imagenes.length; i++) {
+        setUploadStatus(`Subiendo imagen ${i + 1}/${formData.imagenes.length}...`);
 
-      showAlert('success', '¡Propiedad creada exitosamente!', 
-        'Redirigiendo al listado...');
+        const result = await processImage(
+          formData.imagenes[i],
+          'propiedades',
+          slug,
+          (msg) => setUploadStatus(msg)
+        );
 
+        imageUrls.push(result.url);
+      }
+
+      setUploadStatus('Guardando propiedad en base de datos...');
+
+      // ✅ IMAGEN PRINCIPAL: usar la URL del índice seleccionado
+      const headerImageUrl = imageUrls[formData.headerImageIndex] || imageUrls[0];
+
+      // ✅ Preparar datos para insertar
+      const propertyData = {
+        titulo: formData.titulo,
+        descripcion: formData.descripcion,
+        ubicacion: formData.ubicacion,
+        precio: parseFloat(formData.precio),
+        tipo: formData.tipo,
+        metros2: parseFloat(formData.metros2) || 0,
+        habitaciones: parseInt(formData.habitaciones) || 0,
+        banos: parseInt(formData.banos) || 0,
+        imagenes: imageUrls,
+        header_image: headerImageUrl, // ✅ NUEVA COLUMNA
+        VentaPreventa: formData.VentaPreventa,
+        codigo: formData.codigo || null,
+      };
+
+      // ✅ Usar Server Action con revalidación automática
+      const result = await createProperty(propertyData);
+
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+
+      showAlert('success', result.message || 'Propiedad creada exitosamente');
+      setUploadStatus('');
+      
+      // ✅ Esperar un poco para que se vea el mensaje de éxito
       setTimeout(() => {
         router.push('/admin/propiedades');
+        router.refresh(); // Forzar refresh para ver los cambios inmediatamente
       }, 1500);
     } catch (error) {
       console.error('Error creando propiedad:', error);
-      showAlert('error', 'Error al crear la propiedad', error.message);
+      showAlert('error', error.message || 'Error al crear la propiedad');
+      setUploadStatus('');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-4xl">
       
       {/* HEADER */}
-      <div className="flex items-center gap-4">
-        <Link href="/admin/propiedades">
-          <Button variant="outline" size="icon" className="border-2 border-gris-medio hover:border-naranja hover:bg-naranja/10 rounded-xl">
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-3xl md:text-4xl font-extrabold text-gris-oscuro flex items-center gap-3">
-            <Home className="w-9 h-9 text-naranja" />
-            Nueva Propiedad
-          </h1>
-          <p className="text-gris-oscuro/70 mt-2 text-lg">
-            Completa los campos para agregar una propiedad
-          </p>
-        </div>
+      <div>
+        <h1 className="text-3xl md:text-4xl font-extrabold text-gris-oscuro flex items-center gap-3">
+          <Plus className="w-9 h-9 text-naranja" />
+          Nueva Propiedad
+        </h1>
+        <p className="text-gris-oscuro/70 mt-2">Crea una nueva propiedad en el sistema</p>
       </div>
 
       {/* ALERT */}
       {alert && (
         <Alert className={`border-2 ${
-          alert.type === 'success' ? 'bg-green-50 border-green-500' :
-          alert.type === 'error' ? 'bg-red-50 border-red-500' :
-          'bg-yellow-50 border-yellow-500'
+          alert.type === 'success' ? 'bg-green-50 border-green-500' : 'bg-red-50 border-red-500'
         }`}>
           {alert.type === 'success' ? (
             <CheckCircle className="h-5 w-5 text-green-600" />
@@ -214,132 +231,115 @@ export default function NuevaPropiedadPage() {
             <AlertCircle className="h-5 w-5 text-red-600" />
           )}
           <AlertDescription className={`font-semibold ml-2 ${
-            alert.type === 'success' ? 'text-green-800' :
-            alert.type === 'error' ? 'text-red-800' :
-            'text-yellow-800'
+            alert.type === 'success' ? 'text-green-800' : 'text-red-800'
           }`}>
-            <div className="font-bold">{alert.message}</div>
-            {alert.description && (
-              <div className="text-sm font-normal mt-1">{alert.description}</div>
-            )}
+            {alert.message}
           </AlertDescription>
         </Alert>
       )}
 
-      {/* FORM */}
+      {/* UPLOAD STATUS */}
+      {(uploading || uploadStatus) && (
+        <Card className="bg-blue-50 border-2 border-blue-500">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+              <div className="flex-1">
+                <p className="font-bold text-blue-900 mb-2">{uploadStatus}</p>
+                <div className="w-full bg-blue-200 rounded-full h-2">
+                  <div
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+                <p className="text-xs text-blue-700 mt-1">{progress}%</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-6">
         
-        {/* IMÁGENES */}
+        {/* TÍTULO */}
         <Card className="border-2 border-gris-medio">
-          <CardHeader>
-            <CardTitle className="text-xl font-bold text-gris-oscuro flex items-center gap-3">
-              <ImageIcon className="w-6 h-6 text-naranja" />
-              Imágenes de la Propiedad
-              <Badge className="bg-naranja/10 text-naranja border border-naranja/30 ml-2">
-                {imagePreviews.length}/10
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            
-            {/* PREVIEWS GRID */}
-            {imagePreviews.length > 0 && (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {imagePreviews.map((preview, index) => (
-                  <div key={index} className="relative group">
-                    <img 
-                      src={preview} 
-                      alt={`Preview ${index + 1}`}
-                      className="w-full h-32 object-cover rounded-xl border-2 border-gris-medio group-hover:border-naranja transition-all"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeImage(index)}
-                      className="absolute top-2 right-2 p-1.5 bg-red-600 hover:bg-red-700 text-blanco rounded-full transition-all opacity-0 group-hover:opacity-100 shadow-lg"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                    {index === 0 && (
-                      <Badge className="absolute bottom-2 left-2 bg-gradient-cta text-blanco font-bold shadow-naranja">
-                        Principal
-                      </Badge>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* UPLOAD BUTTON */}
-            {imagePreviews.length < 10 && (
-              <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gris-medio rounded-xl cursor-pointer hover:border-naranja hover:bg-naranja/5 transition-all group">
-                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <div className="w-16 h-16 bg-naranja/10 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-naranja/20 transition-all">
-                    <Upload className="w-8 h-8 text-naranja" />
-                  </div>
-                  <p className="mb-2 text-sm text-gris-oscuro font-semibold">
-                    Click para subir o arrastra y suelta
-                  </p>
-                  <p className="text-xs text-gris-oscuro/70">
-                    PNG, JPG, JPEG (MAX. 5MB por imagen)
-                  </p>
-                  <p className="text-xs text-naranja font-bold mt-2">
-                    Puedes seleccionar múltiples imágenes
-                  </p>
-                </div>
-                <input 
-                  type="file" 
-                  className="hidden" 
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageChange}
-                />
-              </label>
-            )}
-
-            {imagePreviews.length === 0 && (
-              <p className="text-sm text-gris-oscuro/70 text-center py-2">
-                💡 La primera imagen será la imagen principal de la propiedad
+          <CardContent className="p-6">
+            <label className="block mb-3">
+              <p className="text-sm font-bold text-gris-oscuro mb-2">Título *</p>
+              <Input
+                type="text"
+                placeholder="Ej: Casa moderna en Zona 10"
+                value={formData.titulo}
+                onChange={(e) => setFormData(prev => ({ ...prev, titulo: e.target.value }))}
+                className="border-2 border-gris-medio focus:border-naranja py-6 text-base rounded-xl"
+              />
+              <p className="text-xs text-gris-oscuro/70 mt-2">
+                💡 Se creará una carpeta en R2: <span className="font-bold text-naranja">/propiedades/{createSlug(formData.titulo)}/</span>
               </p>
-            )}
+            </label>
           </CardContent>
         </Card>
 
-        {/* INFORMACIÓN BÁSICA */}
+        {/* DESCRIPCIÓN */}
         <Card className="border-2 border-gris-medio">
-          <CardHeader>
-            <CardTitle className="text-xl font-bold text-gris-oscuro flex items-center gap-3">
-              <Home className="w-6 h-6 text-naranja" />
-              Información Básica
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            
-            {/* TÍTULO */}
-            <div>
-              <Label htmlFor="titulo" className="text-gris-oscuro font-semibold mb-2">
-                Título <span className="text-rojo-naranja">*</span>
-              </Label>
-              <Input
-                id="titulo"
-                name="titulo"
-                value={formData.titulo}
-                onChange={handleChange}
-                placeholder="Ej: Casa moderna en zona residencial"
+          <CardContent className="p-6">
+            <label className="block mb-3">
+              <p className="text-sm font-bold text-gris-oscuro mb-2">Descripción *</p>
+              <textarea
+                placeholder="Describe los detalles de la propiedad..."
+                value={formData.descripcion}
+                onChange={(e) => setFormData(prev => ({ ...prev, descripcion: e.target.value }))}
+                className="w-full border-2 border-gris-medio focus:border-naranja rounded-xl p-4 text-base resize-none"
+                rows="6"
                 required
-                className="border-2 border-gris-medio focus:border-naranja h-12 rounded-xl"
               />
-            </div>
+            </label>
+          </CardContent>
+        </Card>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-              
-              {/* TIPO */}
-              <div>
-                <Label htmlFor="tipo" className="text-gris-oscuro font-semibold mb-2">
-                  Tipo de Propiedad <span className="text-rojo-naranja">*</span>
-                </Label>
-                <Select value={formData.tipo} onValueChange={handleSelectChange}>
-                  <SelectTrigger className="border-2 border-gris-medio focus:border-naranja h-12 rounded-xl bg-blanco">
-                    <Building2 className="w-5 h-5 text-naranja mr-2" />
+        {/* UBICACIÓN Y PRECIO */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className="border-2 border-gris-medio">
+            <CardContent className="p-6">
+              <label className="block mb-3">
+                <p className="text-sm font-bold text-gris-oscuro mb-2">Ubicación *</p>
+                <Input
+                  type="text"
+                  placeholder="Ej: Zona 10, Guatemala"
+                  value={formData.ubicacion}
+                  onChange={(e) => setFormData(prev => ({ ...prev, ubicacion: e.target.value }))}
+                  className="border-2 border-gris-medio focus:border-naranja py-6 text-base rounded-xl"
+                  required
+                />
+              </label>
+            </CardContent>
+          </Card>
+
+          <Card className="border-2 border-gris-medio">
+            <CardContent className="p-6">
+              <label className="block mb-3">
+                <p className="text-sm font-bold text-gris-oscuro mb-2">Precio (Q) *</p>
+                <Input
+                  type="number"
+                  placeholder="1,000,000"
+                  value={formData.precio}
+                  onChange={(e) => setFormData(prev => ({ ...prev, precio: e.target.value }))}
+                  className="border-2 border-gris-medio focus:border-naranja py-6 text-base rounded-xl"
+                  required
+                />
+              </label>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* TIPO Y CARACTERÍSTICAS */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className="border-2 border-gris-medio">
+            <CardContent className="p-6">
+              <label className="block mb-3">
+                <p className="text-sm font-bold text-gris-oscuro mb-2">Tipo de Propiedad *</p>
+                <Select value={formData.tipo} onValueChange={(value) => setFormData(prev => ({ ...prev, tipo: value }))}>
+                  <SelectTrigger className="border-2 border-gris-medio focus:border-naranja py-6 rounded-xl bg-blanco">
                     <SelectValue placeholder="Selecciona un tipo" />
                   </SelectTrigger>
                   <SelectContent 
@@ -350,182 +350,231 @@ export default function NuevaPropiedadPage() {
                       opacity: 1
                     }}
                   >
-                    <SelectItem value="Casa" className="!bg-blanco hover:!bg-gris-claro cursor-pointer" style={{ backgroundColor: '#FFFFFF' }}>
-                      Casa
-                    </SelectItem>
-                    <SelectItem value="Apartamento" className="!bg-blanco hover:!bg-gris-claro cursor-pointer" style={{ backgroundColor: '#FFFFFF' }}>
-                      Apartamento
-                    </SelectItem>
-                    <SelectItem value="Terreno" className="!bg-blanco hover:!bg-gris-claro cursor-pointer" style={{ backgroundColor: '#FFFFFF' }}>
-                      Terreno
-                    </SelectItem>
-                    <SelectItem value="Local Comercial" className="!bg-blanco hover:!bg-gris-claro cursor-pointer" style={{ backgroundColor: '#FFFFFF' }}>
-                      Local Comercial
-                    </SelectItem>
+                    <SelectItem value="Casa">🏠 Casa</SelectItem>
+                    <SelectItem value="Apartamento">🏢 Apartamento</SelectItem>
+                    <SelectItem value="Terreno">🌱 Terreno</SelectItem>
+                    <SelectItem value="Local Comercial">🏪 Local Comercial</SelectItem>
+                    <SelectItem value="Oficina">🏛️ Oficina</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
+              </label>
+            </CardContent>
+          </Card>
 
-              {/* PRECIO */}
-              <div>
-                <Label htmlFor="precio" className="text-gris-oscuro font-semibold mb-2">
-                  Precio (Q) <span className="text-rojo-naranja">*</span>
-                </Label>
-                <div className="relative">
-                  <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-amarillo-dorado" />
-                  <Input
-                    id="precio"
-                    type="number"
-                    name="precio"
-                    value={formData.precio}
-                    onChange={handleChange}
-                    placeholder="1500000"
-                    step="0.01"
-                    required
-                    className="border-2 border-gris-medio focus:border-naranja h-12 rounded-xl pl-12"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* UBICACIÓN */}
-            <div>
-              <Label htmlFor="ubicacion" className="text-gris-oscuro font-semibold mb-2">
-                Ubicación <span className="text-rojo-naranja">*</span>
-              </Label>
-              <div className="relative">
-                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-naranja" />
+          <Card className="border-2 border-gris-medio">
+            <CardContent className="p-6">
+              <label className="block mb-3">
+                <p className="text-sm font-bold text-gris-oscuro mb-2">Metros² *</p>
                 <Input
-                  id="ubicacion"
-                  name="ubicacion"
-                  value={formData.ubicacion}
-                  onChange={handleChange}
-                  placeholder="Zona 1, Quetzaltenango"
+                  type="number"
+                  placeholder="250"
+                  value={formData.metros2}
+                  onChange={(e) => setFormData(prev => ({ ...prev, metros2: e.target.value }))}
+                  className="border-2 border-gris-medio focus:border-naranja py-6 text-base rounded-xl"
                   required
-                  className="border-2 border-gris-medio focus:border-naranja h-12 rounded-xl pl-12"
                 />
-              </div>
-            </div>
+              </label>
+            </CardContent>
+          </Card>
+        </div>
 
-            {/* DESCRIPCIÓN */}
-            <div>
-              <Label htmlFor="descripcion" className="text-gris-oscuro font-semibold mb-2">
-                Descripción
-              </Label>
-              <div className="relative">
-                <FileText className="absolute left-4 top-4 w-5 h-5 text-naranja" />
-                <Textarea
-                  id="descripcion"
-                  name="descripcion"
-                  value={formData.descripcion}
-                  onChange={handleChange}
-                  placeholder="Describe las características principales de la propiedad..."
-                  rows={4}
-                  className="border-2 border-gris-medio focus:border-naranja rounded-xl pl-12 resize-none"
+        {/* HABITACIONES Y BAÑOS */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className="border-2 border-gris-medio">
+            <CardContent className="p-6">
+              <label className="block mb-3">
+                <p className="text-sm font-bold text-gris-oscuro mb-2">Habitaciones *</p>
+                <Input
+                  type="number"
+                  placeholder="3"
+                  value={formData.habitaciones}
+                  onChange={(e) => setFormData(prev => ({ ...prev, habitaciones: e.target.value }))}
+                  className="border-2 border-gris-medio focus:border-naranja py-6 text-base rounded-xl"
+                  required
                 />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+              </label>
+            </CardContent>
+          </Card>
 
-        {/* CARACTERÍSTICAS */}
+          <Card className="border-2 border-gris-medio">
+            <CardContent className="p-6">
+              <label className="block mb-3">
+                <p className="text-sm font-bold text-gris-oscuro mb-2">Baños *</p>
+                <Input
+                  type="number"
+                  placeholder="2"
+                  value={formData.banos}
+                  onChange={(e) => setFormData(prev => ({ ...prev, banos: e.target.value }))}
+                  className="border-2 border-gris-medio focus:border-naranja py-6 text-base rounded-xl"
+                  required
+                />
+              </label>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* ESTADO DE VENTA Y CÓDIGO */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className="border-2 border-gris-medio">
+            <CardContent className="p-6">
+              <label className="block mb-3">
+                <p className="text-sm font-bold text-gris-oscuro mb-2">Estado</p>
+                <Select value={formData.VentaPreventa} onValueChange={(value) => setFormData(prev => ({ ...prev, VentaPreventa: value }))}>
+                  <SelectTrigger className="border-2 border-gris-medio focus:border-naranja py-6 rounded-xl bg-blanco">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent 
+                    className="!bg-blanco !opacity-100 border-2 border-gris-medio shadow-2xl"
+                    style={{
+                      backgroundColor: '#FFFFFF',
+                      backdropFilter: 'none',
+                      opacity: 1
+                    }}
+                  >
+                    <SelectItem value="Venta">💰 Venta</SelectItem>
+                    <SelectItem value="Preventa">🔄 Preventa</SelectItem>
+                  </SelectContent>
+                </Select>
+              </label>
+            </CardContent>
+          </Card>
+
+          <Card className="border-2 border-gris-medio">
+            <CardContent className="p-6">
+              <label className="block mb-3">
+                <p className="text-sm font-bold text-gris-oscuro mb-2">Código</p>
+                <Input
+                  type="text"
+                  placeholder="Ej: PROP-001"
+                  value={formData.codigo}
+                  onChange={(e) => setFormData(prev => ({ ...prev, codigo: e.target.value }))}
+                  className="border-2 border-gris-medio focus:border-naranja py-6 text-base rounded-xl"
+                />
+              </label>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* IMÁGENES */}
         <Card className="border-2 border-gris-medio">
-          <CardHeader>
-            <CardTitle className="text-xl font-bold text-gris-oscuro flex items-center gap-3">
-              <Maximize className="w-6 h-6 text-naranja" />
-              Características
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              
-              {/* HABITACIONES */}
-              <div>
-                <Label htmlFor="habitaciones" className="text-gris-oscuro font-semibold mb-2">
-                  Habitaciones
-                </Label>
-                <div className="relative">
-                  <Bed className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-naranja" />
-                  <Input
-                    id="habitaciones"
-                    type="number"
-                    name="habitaciones"
-                    value={formData.habitaciones}
-                    onChange={handleChange}
-                    placeholder="3"
-                    min="0"
-                    className="border-2 border-gris-medio focus:border-naranja h-12 rounded-xl pl-12"
-                  />
-                </div>
-              </div>
+          <CardContent className="p-6">
+            <p className="text-sm font-bold text-gris-oscuro mb-4 flex items-center gap-2">
+              <Home className="w-5 h-5 text-naranja" />
+              Imágenes de la Propiedad ({formData.imagenes.length}/10) *
+            </p>
 
-              {/* BAÑOS */}
-              <div>
-                <Label htmlFor="banos" className="text-gris-oscuro font-semibold mb-2">
-                  Baños
-                </Label>
-                <div className="relative">
-                  <Bath className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-naranja" />
-                  <Input
-                    id="banos"
-                    type="number"
-                    name="banos"
-                    value={formData.banos}
-                    onChange={handleChange}
-                    placeholder="2"
-                    min="0"
-                    className="border-2 border-gris-medio focus:border-naranja h-12 rounded-xl pl-12"
-                  />
+            {formData.imagenesPreview.length === 0 ? (
+              <label className="block border-2 border-dashed border-gris-medio rounded-xl p-8 text-center cursor-pointer hover:border-naranja hover:bg-naranja/5 transition-all">
+                <Upload className="w-12 h-12 text-gris-oscuro/50 mx-auto mb-3" />
+                <p className="font-bold text-gris-oscuro mb-1">Sube imágenes de la propiedad</p>
+                <p className="text-sm text-gris-oscuro/70">JPG, PNG (hasta 10 imágenes)</p>
+                <p className="text-xs text-gris-oscuro/60 mt-2 flex items-center justify-center gap-1">
+                  <Zap className="w-3 h-3 text-yellow-500" />
+                  Se optimizarán a WebP automáticamente
+                </p>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImagesChange}
+                  className="hidden"
+                />
+              </label>
+            ) : (
+              <>
+                <div className="mb-4 p-4 bg-blue-50 border-2 border-blue-200 rounded-xl">
+                  <p className="text-xs font-bold text-blue-900 flex items-center gap-2">
+                    <Star className="w-4 h-4 text-yellow-500" />
+                    Haz clic en una imagen para establecerla como imagen principal
+                  </p>
                 </div>
-              </div>
 
-              {/* METROS² */}
-              <div>
-                <Label htmlFor="metros2" className="text-gris-oscuro font-semibold mb-2">
-                  Metros²
-                </Label>
-                <div className="relative">
-                  <Maximize className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-naranja" />
-                  <Input
-                    id="metros2"
-                    type="number"
-                    name="metros2"
-                    value={formData.metros2}
-                    onChange={handleChange}
-                    placeholder="150"
-                    min="0"
-                    className="border-2 border-gris-medio focus:border-naranja h-12 rounded-xl pl-12"
-                  />
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  {formData.imagenesPreview.map((item, index) => (
+                    <div
+                      key={index}
+                      className="relative group rounded-xl overflow-hidden cursor-pointer"
+                      onClick={() => setHeaderImage(index)}
+                    >
+                      <Image
+                        src={item.preview}
+                        alt={`Preview ${index + 1}`}
+                        width={300}
+                        height={200}
+                        className={`w-full h-32 object-cover transition-all ${
+                          formData.headerImageIndex === index
+                            ? 'ring-4 ring-naranja scale-95'
+                            : 'group-hover:scale-105'
+                        }`}
+                      />
+                      {/* ✅ BADGE DE IMAGEN PRINCIPAL */}
+                      {formData.headerImageIndex === index && (
+                        <div className="absolute inset-0 bg-naranja/20 flex items-center justify-center">
+                          <Star className="w-8 h-8 text-naranja fill-naranja" />
+                        </div>
+                      )}
+                      
+                      <Button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveImage(index);
+                        }}
+                        className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-blanco rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                      <div className="absolute bottom-1 left-1 bg-black/70 text-white text-xs font-bold px-2 py-1 rounded">
+                        {index + 1}
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Botón para agregar más */}
+                  {formData.imagenes.length < 10 && (
+                    <label className="border-2 border-dashed border-gris-medio rounded-xl p-4 flex items-center justify-center cursor-pointer hover:border-naranja hover:bg-naranja/5 transition-all h-32">
+                      <div className="text-center">
+                        <Plus className="w-6 h-6 text-gris-oscuro/50 mx-auto mb-1" />
+                        <span className="text-xs text-gris-oscuro/70 font-bold">Agregar más</span>
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleImagesChange}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
                 </div>
-              </div>
-            </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
-        {/* ACTIONS */}
-        <div className="flex gap-4 justify-end">
-          <Link href="/admin/propiedades">
-            <Button
-              type="button"
-              variant="outline"
-              className="border-2 border-gris-medio hover:bg-gris-claro rounded-xl font-bold px-8 py-6 text-base"
-            >
-              Cancelar
-            </Button>
-          </Link>
+        {/* BOTONES */}
+        <div className="flex gap-4 pt-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => router.back()}
+            className="flex-1 border-2 border-gris-medio hover:bg-gris-claro rounded-xl font-bold py-6"
+          >
+            Cancelar
+          </Button>
           <Button
             type="submit"
-            disabled={loading}
-            className="btn-cta px-8 py-6 rounded-xl font-bold text-base shadow-naranja"
+            disabled={loading || uploading}
+            className="flex-1 btn-cta rounded-xl font-bold py-6 shadow-naranja disabled:opacity-50"
           >
-            {loading ? (
+            {loading || uploading ? (
               <>
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                Creando...
+                Procesando...
               </>
             ) : (
               <>
-                <Home className="w-5 h-5 mr-2" />
+                <Plus className="w-5 h-5 mr-2" />
                 Crear Propiedad
               </>
             )}

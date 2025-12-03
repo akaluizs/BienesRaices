@@ -3,6 +3,7 @@
 import { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { useImageUpload } from '@/hooks/useImageUpload';
 import { 
   ArrowLeft,
   Upload,
@@ -18,9 +19,12 @@ import {
   Image as ImageIcon,
   Building2,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Zap,
+  Star,
 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -39,10 +43,13 @@ import { Badge } from '@/components/ui/badge';
 export default function EditarPropiedadPage({ params }) {
   const { id } = use(params);
   const router = useRouter();
+  const { processImage, uploading, progress } = useImageUpload();
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [imagePreviews, setImagePreviews] = useState([]);
   const [alert, setAlert] = useState(null);
+  const [uploadStatus, setUploadStatus] = useState('');
+  const [propiedadActual, setPropiedadActual] = useState(null);
   const [formData, setFormData] = useState({
     titulo: '',
     tipo: '',
@@ -52,7 +59,11 @@ export default function EditarPropiedadPage({ params }) {
     habitaciones: '',
     banos: '',
     metros2: '',
-    imagenes: []
+    VentaPreventa: 'Venta',
+    codigo: '',
+    imagenes: [],
+    headerImageIndex: 0, 
+    headerImage: '', 
   });
 
   useEffect(() => {
@@ -66,15 +77,25 @@ export default function EditarPropiedadPage({ params }) {
 
   const loadPropiedad = async () => {
     try {
+      // ✅ Incluir header_image en la consulta
       const { data, error } = await supabase
         .from('propiedades')
-        .select('*')
+        .select('id, titulo, tipo, precio, ubicacion, descripcion, habitaciones, banos, metros2, imagenes, VentaPreventa, codigo, header_image')
         .eq('id', id)
         .single();
 
       if (error) throw error;
 
       if (data) {
+        setPropiedadActual(data);
+
+        // ✅ Encontrar el índice de la imagen principal
+        let headerIndex = 0;
+        if (data.header_image && Array.isArray(data.imagenes)) {
+          headerIndex = data.imagenes.findIndex(img => img === data.header_image);
+          if (headerIndex === -1) headerIndex = 0; 
+        }
+
         setFormData({
           titulo: data.titulo || '',
           tipo: data.tipo || '',
@@ -84,7 +105,11 @@ export default function EditarPropiedadPage({ params }) {
           habitaciones: data.habitaciones || '',
           banos: data.banos || '',
           metros2: data.metros2 || '',
-          imagenes: data.imagenes || []
+          VentaPreventa: data.VentaPreventa || 'Venta',
+          codigo: data.codigo || '',
+          imagenes: data.imagenes || [],
+          headerImageIndex: headerIndex,
+          headerImage: data.header_image || '',
         });
         setImagePreviews(data.imagenes || []);
         showAlert('success', 'Propiedad cargada correctamente');
@@ -113,6 +138,30 @@ export default function EditarPropiedadPage({ params }) {
     }));
   };
 
+  const handleVentaPreventa = (value) => {
+    setFormData(prev => ({
+      ...prev,
+      VentaPreventa: value
+    }));
+  };
+
+  const createSlug = (text) => {
+    return text
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
+  };
+
+  // Establecer imagen como principal
+  const setHeaderImage = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      headerImageIndex: index,
+      headerImage: prev.imagenes[index] || '',
+    }));
+  };
+
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
     
@@ -124,45 +173,95 @@ export default function EditarPropiedadPage({ params }) {
       return;
     }
 
-    const maxSize = 5 * 1024 * 1024; // 5MB
+    const maxSize = 15 * 1024 * 1024; // 5MB
     for (let file of files) {
       if (file.size > maxSize) {
         showAlert('error', 'Imagen demasiado grande', 
-          `${file.name} excede el tamaño máximo de 5MB`);
+          `${file.name} excede el tamaño máximo de 15MB`);
         return;
       }
     }
 
-    const promises = files.map(file => {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-    });
+    let processedCount = 0;
+    const newImageUrls = [];
 
-    Promise.all(promises)
-      .then(base64Images => {
-        setImagePreviews(prev => [...prev, ...base64Images]);
-        setFormData(prev => ({
-          ...prev,
-          imagenes: [...prev.imagenes, ...base64Images]
-        }));
-        showAlert('success', `${files.length} imagen(es) agregada(s)`);
-      })
-      .catch(error => {
-        console.error('Error procesando imágenes:', error);
-        showAlert('error', 'Error al procesar las imágenes');
-      });
+    files.forEach((file, index) => {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        // Agregar preview temporal
+        setImagePreviews(prev => [...prev, reader.result]);
+
+        // Procesar y subir a R2
+        try {
+          const slug = createSlug(formData.titulo);
+          setUploadStatus(`Optimizando imagen ${index + 1}/${files.length}...`);
+
+          const result = await processImage(
+            file,
+            'propiedades',
+            slug,
+            (msg) => setUploadStatus(msg)
+          );
+
+          newImageUrls.push(result.url);
+          processedCount++;
+
+          // Si terminamos de procesar todas
+          if (processedCount === files.length) {
+            const todasLasImagenes = [...formData.imagenes, ...newImageUrls];
+            setFormData(prev => ({
+              ...prev,
+              imagenes: todasLasImagenes
+            }));
+            setUploadStatus('');
+            showAlert('success', `${files.length} imagen(es) agregada(s) y optimizada(s)`);
+          }
+        } catch (error) {
+          console.error('Error procesando imagen:', error);
+          showAlert('error', 'Error optimizando imagen', error.message);
+          setUploadStatus('');
+          // Remover preview si falló
+          setImagePreviews(prev => prev.filter((_, i) => i !== prev.length - 1));
+        }
+      };
+      reader.readAsDataURL(file);
+    });
   };
 
-  const removeImage = (index) => {
+  const removeImage = async (index) => {
+    const imageUrl = imagePreviews[index];
+
+    // Si es una URL de R2, eliminar de R2
+    if (imageUrl && imageUrl.startsWith('https://')) {
+      try {
+        await fetch('/api/r2/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileUrl: imageUrl }),
+        });
+      } catch (error) {
+        console.warn('⚠️ No se pudo eliminar imagen de R2:', error);
+      }
+    }
+
+    // Si eliminamos la imagen principal, seleccionar otra
+    let nuevoIndice = formData.headerImageIndex;
+    if (nuevoIndice === index) {
+      nuevoIndice = Math.max(0, index - 1);
+    } else if (nuevoIndice > index) {
+      nuevoIndice--;
+    }
+
     setImagePreviews(prev => prev.filter((_, i) => i !== index));
+    const nuevasImagenes = formData.imagenes.filter((_, i) => i !== index);
+    
     setFormData(prev => ({
       ...prev,
-      imagenes: prev.imagenes.filter((_, i) => i !== index)
+      imagenes: nuevasImagenes,
+      headerImageIndex: nuevoIndice,
+      headerImage: nuevasImagenes[nuevoIndice] || '',
     }));
+    
     showAlert('success', 'Imagen eliminada');
   };
 
@@ -184,6 +283,8 @@ export default function EditarPropiedadPage({ params }) {
     setLoading(true);
 
     try {
+      setUploadStatus('Guardando propiedad en base de datos...');
+
       const { data, error } = await supabase
         .from('propiedades')
         .update({
@@ -195,13 +296,17 @@ export default function EditarPropiedadPage({ params }) {
           habitaciones: parseInt(formData.habitaciones) || null,
           banos: parseInt(formData.banos) || null,
           metros2: parseInt(formData.metros2) || null,
-          imagenes: formData.imagenes
+          VentaPreventa: formData.VentaPreventa || 'Venta',
+          codigo: formData.codigo || null,
+          imagenes: formData.imagenes,
+          header_image: formData.imagenes[formData.headerImageIndex] || formData.imagenes[0], 
         })
         .eq('id', id)
         .select();
 
       if (error) throw error;
 
+      setUploadStatus('');
       showAlert('success', '¡Propiedad actualizada exitosamente!', 
         'Redirigiendo al listado...');
 
@@ -211,6 +316,7 @@ export default function EditarPropiedadPage({ params }) {
     } catch (error) {
       console.error('Error actualizando propiedad:', error);
       showAlert('error', 'Error al actualizar la propiedad', error.message);
+      setUploadStatus('');
     } finally {
       setLoading(false);
     }
@@ -271,6 +377,27 @@ export default function EditarPropiedadPage({ params }) {
         </Alert>
       )}
 
+      {/* UPLOAD STATUS */}
+      {(uploading || uploadStatus) && (
+        <Card className="bg-blue-50 border-2 border-blue-500">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+              <div className="flex-1">
+                <p className="font-bold text-blue-900 mb-2">{uploadStatus}</p>
+                <div className="w-full bg-blue-200 rounded-full h-2">
+                  <div
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+                <p className="text-xs text-blue-700 mt-1">{progress}%</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* FORM */}
       <form onSubmit={handleSubmit} className="space-y-6">
         
@@ -287,28 +414,64 @@ export default function EditarPropiedadPage({ params }) {
           </CardHeader>
           <CardContent className="space-y-4">
             
+            {/* ✅ INFO SOBRE IMAGEN PRINCIPAL */}
+            {imagePreviews.length > 0 && (
+              <div className="p-4 bg-blue-50 border-2 border-blue-200 rounded-xl">
+                <p className="text-xs font-bold text-blue-900 flex items-center gap-2">
+                  <Star className="w-4 h-4 text-yellow-500" />
+                  Haz clic en una imagen para establecerla como imagen principal
+                </p>
+              </div>
+            )}
+
             {/* PREVIEWS GRID */}
             {imagePreviews.length > 0 && (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {imagePreviews.map((preview, index) => (
-                  <div key={index} className="relative group">
-                    <img 
-                      src={preview} 
-                      alt={`Preview ${index + 1}`}
-                      className="w-full h-32 object-cover rounded-xl border-2 border-gris-medio group-hover:border-naranja transition-all"
-                    />
+                  <div 
+                    key={index} 
+                    className={`relative group rounded-xl overflow-hidden cursor-pointer transition-all ${
+                      formData.headerImageIndex === index ? 'ring-4 ring-naranja scale-95' : ''
+                    }`}
+                    onClick={() => setHeaderImage(index)}
+                  >
+                    {preview.startsWith('data:') ? (
+                      <img 
+                        src={preview} 
+                        alt={`Preview ${index + 1}`}
+                        className="w-full h-32 object-cover border-2 border-gris-medio group-hover:border-naranja transition-all"
+                      />
+                    ) : (
+                      <Image
+                        src={preview}
+                        alt={`Preview ${index + 1}`}
+                        width={300}
+                        height={200}
+                        className="w-full h-32 object-cover border-2 border-gris-medio group-hover:border-naranja transition-all"
+                      />
+                    )}
+                    
+                    {/* BADGE DE IMAGEN PRINCIPAL */}
+                    {formData.headerImageIndex === index && (
+                      <div className="absolute inset-0 bg-naranja/20 flex items-center justify-center">
+                        <Star className="w-8 h-8 text-naranja fill-naranja" />
+                      </div>
+                    )}
+
                     <button
                       type="button"
-                      onClick={() => removeImage(index)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeImage(index);
+                      }}
                       className="absolute top-2 right-2 p-1.5 bg-red-600 hover:bg-red-700 text-blanco rounded-full transition-all opacity-0 group-hover:opacity-100 shadow-lg"
                     >
                       <X className="w-4 h-4" />
                     </button>
-                    {index === 0 && (
-                      <Badge className="absolute bottom-2 left-2 bg-gradient-cta text-blanco font-bold shadow-naranja">
-                        Principal
-                      </Badge>
-                    )}
+                    
+                    <div className="absolute bottom-1 left-1 bg-black/70 text-white text-xs font-bold px-2 py-1 rounded">
+                      {index + 1}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -327,8 +490,9 @@ export default function EditarPropiedadPage({ params }) {
                   <p className="text-xs text-gris-oscuro/70">
                     PNG, JPG, JPEG (MAX. 5MB por imagen)
                   </p>
-                  <p className="text-xs text-naranja font-bold mt-2">
-                    Puedes seleccionar múltiples imágenes
+                  <p className="text-xs text-naranja font-bold mt-2 flex items-center justify-center gap-1">
+                    <Zap className="w-3 h-3" />
+                    Se optimizarán a WebP automáticamente
                   </p>
                 </div>
                 <input 
@@ -337,6 +501,7 @@ export default function EditarPropiedadPage({ params }) {
                   accept="image/*"
                   multiple
                   onChange={handleImageChange}
+                  disabled={uploading}
                 />
               </label>
             )}
@@ -373,6 +538,9 @@ export default function EditarPropiedadPage({ params }) {
                 required
                 className="border-2 border-gris-medio focus:border-naranja h-12 rounded-xl"
               />
+              <p className="text-xs text-gris-oscuro/70 mt-2">
+                💡 Carpeta en R2: <span className="font-bold text-naranja">/propiedades/{createSlug(formData.titulo)}/</span>
+              </p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -395,18 +563,10 @@ export default function EditarPropiedadPage({ params }) {
                       opacity: 1
                     }}
                   >
-                    <SelectItem value="Casa" className="!bg-blanco hover:!bg-gris-claro cursor-pointer" style={{ backgroundColor: '#FFFFFF' }}>
-                      Casa
-                    </SelectItem>
-                    <SelectItem value="Apartamento" className="!bg-blanco hover:!bg-gris-claro cursor-pointer" style={{ backgroundColor: '#FFFFFF' }}>
-                      Apartamento
-                    </SelectItem>
-                    <SelectItem value="Terreno" className="!bg-blanco hover:!bg-gris-claro cursor-pointer" style={{ backgroundColor: '#FFFFFF' }}>
-                      Terreno
-                    </SelectItem>
-                    <SelectItem value="Local Comercial" className="!bg-blanco hover:!bg-gris-claro cursor-pointer" style={{ backgroundColor: '#FFFFFF' }}>
-                      Local Comercial
-                    </SelectItem>
+                    <SelectItem value="Casa">Casa</SelectItem>
+                    <SelectItem value="Apartamento">Apartamento</SelectItem>
+                    <SelectItem value="Terreno">Terreno</SelectItem>
+                    <SelectItem value="Local Comercial">Local Comercial</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -467,6 +627,58 @@ export default function EditarPropiedadPage({ params }) {
                   placeholder="Describe las características principales de la propiedad..."
                   rows={4}
                   className="border-2 border-gris-medio focus:border-naranja rounded-xl pl-12 resize-none"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* ESTADO Y CÓDIGO */}
+        <Card className="border-2 border-gris-medio">
+          <CardHeader>
+            <CardTitle className="text-xl font-bold text-gris-oscuro flex items-center gap-3">
+              <Building2 className="w-6 h-6 text-naranja" />
+              Estado y Código
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              
+              {/* ESTADO DE VENTA */}
+              <div>
+                <Label htmlFor="VentaPreventa" className="text-gris-oscuro font-semibold mb-2">
+                  Estado
+                </Label>
+                <Select value={formData.VentaPreventa} onValueChange={handleVentaPreventa}>
+                  <SelectTrigger className="border-2 border-gris-medio focus:border-naranja h-12 rounded-xl bg-blanco">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent 
+                    className="!bg-blanco !opacity-100 border-2 border-gris-medio shadow-2xl"
+                    style={{
+                      backgroundColor: '#FFFFFF',
+                      backdropFilter: 'none',
+                      opacity: 1
+                    }}
+                  >
+                    <SelectItem value="Venta">💰 Venta</SelectItem>
+                    <SelectItem value="Preventa">🔄 Preventa</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* CÓDIGO */}
+              <div>
+                <Label htmlFor="codigo" className="text-gris-oscuro font-semibold mb-2">
+                  Código
+                </Label>
+                <Input
+                  id="codigo"
+                  name="codigo"
+                  value={formData.codigo}
+                  onChange={handleChange}
+                  placeholder="Ej: PROP-001"
+                  className="border-2 border-gris-medio focus:border-naranja h-12 rounded-xl"
                 />
               </div>
             </div>
@@ -560,13 +772,13 @@ export default function EditarPropiedadPage({ params }) {
           </Link>
           <Button
             type="submit"
-            disabled={loading}
-            className="btn-cta px-8 py-6 rounded-xl font-bold text-base shadow-naranja"
+            disabled={loading || uploading}
+            className="btn-cta px-8 py-6 rounded-xl font-bold text-base shadow-naranja disabled:opacity-50"
           >
-            {loading ? (
+            {loading || uploading ? (
               <>
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                Actualizando...
+                Procesando...
               </>
             ) : (
               <>
